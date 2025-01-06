@@ -1,21 +1,44 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from accounts.utils import OverwriteStorage, rename_imagefile_to_uid
+from django.conf import settings
+
+
+class Tag(models.Model):  # 게임의 태그
+    name = models.CharField(max_length=20, unique=True)
+
+
+class Interest(models.Model):  # 게임
+    title = models.CharField(max_length=10, unique=True)
+    tags = models.ManyToManyField(Tag, through="InterestTag", related_name="tags")
+
+
+class InterestTag(models.Model):  # 게임과 태그의 관계 설정
+    interest = models.ForeignKey(Interest, on_delete=models.CASCADE)
+    tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["interest", "tag"], name="unique_interest_tag"
+            )
+        ]
+
+
+class AccountInterest(models.Model):  # 게임과 유저의 관계 설정
+    account = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    interest = models.ForeignKey(Interest, on_delete=models.CASCADE)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["account", "interest"], name="unique_account_interest"
+            )
+        ]
 
 
 class AccountManager(BaseUserManager):
     def create_user(self, user_id, email, password, nickname, age, **extra_fields):
-        if not user_id:
-            raise ValueError("The user_id field is required.")
-        if not email:
-            raise ValueError("The Email field is required.")
-        if not password:
-            raise ValueError("The Password field is required.")
-        if not age:
-            raise ValueError("The Age field is required.")
-        # if not nickname:
-        #     raise ValueError("The Nickname field is required.")
-
         email = self.normalize_email(email)
         user = self.model(
             user_id=user_id, email=email, nickname=nickname, age=age, **extra_fields
@@ -28,9 +51,10 @@ class AccountManager(BaseUserManager):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
 
-        return self.create_user(
-            self, user_id, email, password, nickname, age, **extra_fields
-        )
+        return self.create_user(user_id, email, password, nickname, age, **extra_fields)
+
+    def get_by_natural_key(self, user_id):
+        return self.get(user_id=user_id)
 
 
 class Account(AbstractBaseUser):
@@ -41,11 +65,14 @@ class Account(AbstractBaseUser):
     photo = models.ImageField(
         upload_to=rename_imagefile_to_uid, storage=OverwriteStorage(), blank=True
     )
+    interests = models.ManyToManyField(
+        Interest, through="AccountInterest", related_name="interests"
+    )
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
-    last_login = models.DateTimeField(auto_now=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     objects = AccountManager()
 
@@ -58,3 +85,34 @@ class Account(AbstractBaseUser):
 
     def __str__(self):
         return self.user_id
+
+
+class Notice(models.Model):
+    user_id = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="accounts"
+    )
+    type = models.IntegerField(default=0)
+    content = models.CharField(max_length=50)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
+class FriendRequest(models.Model):
+    user_id = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="my_friend_request",
+    )
+    friend_id = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    type = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
+class Friend(models.Model):
+    user_id = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="my_friends"
+    )
+    friend_id = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
