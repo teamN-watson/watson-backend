@@ -21,3 +21,4 @@ tomli==2.2.1
 toposort==1.10
 typing_extensions==4.12.2
 wait-for-it==2.2.2
+django-environ==0.11.2

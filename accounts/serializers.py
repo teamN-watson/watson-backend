@@ -4,15 +4,37 @@ from django.contrib.auth.hashers import make_password  # 비밀번호 해싱
 
 
 class AccountSerializer(serializers.ModelSerializer):
-    user_id = serializers.CharField()
-    email = serializers.EmailField()
-    confirm_password = serializers.CharField(write_only=True)
+    user_id = serializers.CharField(
+        required=True, error_messages={"required": "유저 아이디 값은 필수입니다."}
+    )
+    email = serializers.EmailField(
+        required=True,
+        error_messages={
+            "required": "이메일 값은 필수입니다.",
+            "invalid": "올바른 이메일 형식으로 입력해주세요.",
+        },
+    )
+    age = serializers.IntegerField(
+        required=True, error_messages={"required": "나이 값은 필수입니다."}
+    )
+    password = serializers.CharField(
+        write_only=True,
+        required=True,
+        error_messages={"required": "비밀번호 입력은 필수입니다."},
+    )
+    confirm_password = serializers.CharField(
+        write_only=True,
+        required=True,
+        error_messages={
+            "required": "비밀번호 재입력은 필수입니다.",
+        },
+    )
 
     def validate(self, data):
         # 비밀번호와 확인용 비밀번호가 일치하는지 검증
         if data["password"] != data["confirm_password"]:
             raise serializers.ValidationError(
-                {"password": "비밀번호가 일치하지 않습니다."}
+                {"message": "비밀번호가 일치하지 않습니다."}
             )
         if Account.objects.filter(user_id=data["user_id"]).exists():
             raise serializers.ValidationError(
@@ -26,10 +48,9 @@ class AccountSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Account
-        fields = ["user_id", "password", "confirm_password", "email", "age"]
+        fields = ("user_id", "password", "confirm_password", "email", "age", "nickname")
 
     def create(self, validated_data):
-        # 비밀번호 해싱 처리
         validated_data.pop("confirm_password", None)
         validated_data["password"] = make_password(validated_data["password"])
         return super().create(validated_data)
