@@ -133,3 +133,4 @@ cython_debug/
 
 # Let's Encrypt (Traefik)
 letsencrypt/
+.env

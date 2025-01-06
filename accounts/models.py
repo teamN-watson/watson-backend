@@ -37,6 +37,26 @@ class AccountInterest(models.Model):  # 게임과 유저의 관계 설정
         ]
 
 
+class AccountManager(BaseUserManager):
+    def create_user(self, user_id, email, password, nickname, age, **extra_fields):
+        email = self.normalize_email(email)
+        user = self.model(
+            user_id=user_id, email=email, nickname=nickname, age=age, **extra_fields
+        )
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, user_id, email, password, nickname, age, **extra_fields):
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", True)
+
+        return self.create_user(user_id, email, password, nickname, age, **extra_fields)
+
+    def get_by_natural_key(self, user_id):
+        return self.get(user_id=user_id)
+
+
 class Account(AbstractBaseUser):
     user_id = models.CharField(max_length=30, unique=True)
     email = models.EmailField(unique=True)
@@ -53,6 +73,9 @@ class Account(AbstractBaseUser):
     is_superuser = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    objects = AccountManager()
+
     USERNAME_FIELD = "user_id"
     REQUIRED_FIELDS = ["email", "age"]
 
