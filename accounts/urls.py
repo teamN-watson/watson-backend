@@ -1,5 +1,5 @@
 """
-URL configuration for watson project.
+URL configuration for spartamarket project.
 
 The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/4.2/topics/http/urls/
@@ -15,11 +15,12 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 
-from django.contrib import admin
 from django.urls import path
-from django.urls.conf import include
+from accounts import views
+
+app_name = "accounts"
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
-    path("api/account/", include("accounts.urls")),
+    path("signup/", views.signup, name="signup"),
+    # path("signin/", views.signin, name="signin"),
 ]
