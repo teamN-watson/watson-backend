@@ -13,8 +13,6 @@ class Review(models.Model):
     content = models.TextField()  # 리뷰 내용
     app_id = models.IntegerField()  # Steam API에서 가져온 게임 ID (해당 게임 리뷰 작성 페이지로 이동할때 프론트엔드가 app_id 전달함)
     score = models.DecimalField(max_digits=2, decimal_places=1, default=1.0)  # 별점: 0.5 단위(별 반개 단위), 최대 5.0 (별 다섯개)
-    total_likes = models.IntegerField(default=0)  # 좋아요 수를 저장하는 필드 (추후 캐싱 고려 필요)
-    total_dislikes = models.IntegerField(default=0)  # 비추천 수를 저장하는 필드
     created_at = models.DateTimeField(auto_now_add=True)  # 리뷰 생성 시간
     updated_at = models.DateTimeField(auto_now=True)  # 리뷰 수정 시간
 
@@ -26,11 +24,6 @@ class Review(models.Model):
 
         return f"Review 작성자 : {nickname} - 스팀 게임 번호 : {self.app_id} 평점 : ({self.score})"
 
-    def update_likes_and_dislikes(self):
-        """좋아요/비추천 수 업데이트"""
-        self.total_likes = self.likes.filter(is_active=1).count()  # 좋아요 수 계산 'likes'는 ReviewLike 모델의 역참조
-        self.total_dislikes = self.likes.filter(is_active=-1).count()  # 비추천 수 계산
-        self.save()
 
 
     class Meta:
