@@ -52,3 +52,13 @@ class ReviewSerializer(serializers.ModelSerializer):
     def get_total_dislikes(self, obj):
         """총 비추천 수 반환"""
         return obj.likes.filter(is_active=-1).count()
+    
+    def validate_score(self, value):
+        """
+        평점 검증: 0.5~5.0 사이의 값만 허용하고, 0.5 단위로 작성되어야 함.
+        """
+        if not (0.5 <= value <= 5.0):
+            raise serializers.ValidationError("평점은 0.5에서 5.0 사이의 값이어야 합니다.")
+        if value * 10 % 5 != 0:
+            raise serializers.ValidationError("평점은 0.5 단위로 작성되어야 합니다.")
+        return value
