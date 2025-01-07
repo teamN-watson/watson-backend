@@ -41,6 +41,16 @@ class ReviewDetailAPIView(APIView):
     특정 리뷰 조회, 수정, 삭제
     """
 
+    def get_permissions(self):
+        """
+        메서드별 권한 설정
+        """
+        if self.request.method == "GET":
+            return [AllowAny()]
+        if self.request.method in ["PUT", "DELETE"]:
+            return [IsAuthenticated()]
+        return super().get_permissions()
+
     def get(self, request, pk):
         """특정 리뷰 조회"""
         review = get_object_or_404(Review, pk=pk)
@@ -89,6 +99,7 @@ class ReviewCommentDetailAPIView(APIView):
     """
     특정 댓글 수정 및 삭제
     """
+    permission_classes = [IsAuthenticated]
 
     def put(self, request, pk):
         """댓글 수정"""
@@ -117,7 +128,8 @@ class ReviewLikeAPIView(APIView):
     """
     특정 리뷰에 좋아요 또는 비추천 생성 및 상태 변경
     """
-
+    permission_classes = [IsAuthenticated]
+    
     def post(self, request, review_id):
         """좋아요/비추천 생성 및 상태 변경"""
         review = get_object_or_404(Review, pk=review_id)
