@@ -28,7 +28,7 @@ class ReviewAPIView(APIView):
         """리뷰 목록 조회"""
         sort_by = request.query_params.get('sort_by', 'recent')  # 기본 정렬 기준: 최신순
 
-        # annotate로 좋아요 및 비추천 수 계산
+        # annotate로 좋아요 및 비추천 수 계산 / 'related_name="likes"로 연결된 ReviewLike 모델의 is_active 필드 값이 1인 경우 추천, -1인 경우 비추천'
         reviews = Review.objects.annotate(
             total_likes=Count('likes', filter=Q(likes__is_active=1)),
             total_dislikes=Count('likes', filter=Q(likes__is_active=-1))
