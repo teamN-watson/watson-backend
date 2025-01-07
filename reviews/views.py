@@ -82,12 +82,27 @@ class ReviewDetailAPIView(APIView):
 
 class ReviewCommentAPIView(APIView):
     """
-    특정 리뷰에 댓글 생성
+    특정 리뷰에 댓글 생성 및 조회
     """
-    permission_classes = [IsAuthenticated]
+    def get_permissions(self):
+        """
+        메서드별 권한 설정
+        """
+        if self.request.method == "GET":
+            return [AllowAny()]
+        if self.request.method == "POST":
+            return [IsAuthenticated()]
+        return super().get_permissions()
+
+    def get(self, request, review_id):
+        """특정 리뷰의 댓글 목록 조회"""
+        review = get_object_or_404(Review, pk=review_id)
+        comments = review.comments.all()  # Review 모델의 related_name="comments"로 연결된 댓글 가져오기
+        serializer = ReviewCommentSerializer(comments, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request, review_id):
-        """댓글 생성"""
+        """특정 리뷰에 댓글 생성"""
         review = get_object_or_404(Review, pk=review_id)
         serializer = ReviewCommentSerializer(data=request.data)
         if serializer.is_valid():
@@ -129,7 +144,7 @@ class ReviewLikeAPIView(APIView):
     특정 리뷰에 좋아요 또는 비추천 생성 및 상태 변경
     """
     permission_classes = [IsAuthenticated]
-    
+
     def post(self, request, review_id):
         """좋아요/비추천 생성 및 상태 변경"""
         review = get_object_or_404(Review, pk=review_id)
