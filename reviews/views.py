@@ -1,3 +1,4 @@
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -11,6 +12,16 @@ class ReviewAPIView(APIView):
     리뷰 목록 조회 및 새 리뷰 생성
     """
 
+    def get_permissions(self):
+        """
+        메서드별 권한 부여
+        """
+        if self.request.method == "GET":
+            return [AllowAny()]
+        if self.request.method == "POST":
+            return [IsAuthenticated()]
+        return super().get_permissions()
+    
     def get(self, request):
         """리뷰 목록 조회"""
         reviews = Review.objects.all()
@@ -63,6 +74,7 @@ class ReviewCommentAPIView(APIView):
     """
     특정 리뷰에 댓글 생성
     """
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, review_id):
         """댓글 생성"""
