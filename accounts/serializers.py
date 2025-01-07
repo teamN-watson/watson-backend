@@ -61,7 +61,15 @@ class AccountSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Account
-        fields = ("user_id", "password", "confirm_password", "email", "age", "nickname")
+        fields = (
+            "user_id",
+            "password",
+            "confirm_password",
+            "email",
+            "age",
+            "nickname",
+            "photo",
+        )
 
     def create(self, validated_data):
         validated_data.pop("confirm_password", None)
