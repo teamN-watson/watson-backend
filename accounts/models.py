@@ -5,7 +5,8 @@ from django.conf import settings
 
 
 class Tag(models.Model):  # 게임의 태그
-    name = models.CharField(max_length=20, unique=True)
+    name = models.CharField(max_length=50, unique=True)
+    steam_tag_id = models.IntegerField(default=0)
 
 
 class Interest(models.Model):  # 게임
@@ -77,7 +78,7 @@ class Account(AbstractBaseUser):
     objects = AccountManager()
 
     USERNAME_FIELD = "user_id"
-    REQUIRED_FIELDS = ["email", "age"]
+    REQUIRED_FIELDS = ["email", "age", "nickname"]
 
     class Meta:
         verbose_name = "Account"
