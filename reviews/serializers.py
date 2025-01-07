@@ -22,7 +22,7 @@ class ReviewLikeSerializer(serializers.ModelSerializer):
     class Meta:
         model = ReviewLike
         fields = ['id', 'review', 'user', 'nickname', 'is_active', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'review', 'user', 'created_at', 'updated_at']
 
     def get_nickname(self, obj):
         """유저 닉네임 반환 (유저가 없으면 '알수없음')"""
