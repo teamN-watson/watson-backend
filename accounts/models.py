@@ -5,11 +5,13 @@ from django.conf import settings
 
 
 class Tag(models.Model):  # 게임의 태그
-    name = models.CharField(max_length=20, unique=True)
+    name_en = models.CharField(max_length=50, unique=True)
+    name_ko = models.CharField(max_length=20, unique=True)
+    steam_tag_id = models.IntegerField(default=0)
 
 
 class Interest(models.Model):  # 게임
-    title = models.CharField(max_length=10, unique=True)
+    name = models.CharField(max_length=10, unique=True)
     tags = models.ManyToManyField(Tag, through="InterestTag", related_name="tags")
 
 
@@ -68,6 +70,7 @@ class Account(AbstractBaseUser):
     interests = models.ManyToManyField(
         Interest, through="AccountInterest", related_name="interests"
     )
+    is_steam = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
@@ -77,7 +80,7 @@ class Account(AbstractBaseUser):
     objects = AccountManager()
 
     USERNAME_FIELD = "user_id"
-    REQUIRED_FIELDS = ["email", "age"]
+    REQUIRED_FIELDS = ["email", "age", "nickname"]
 
     class Meta:
         verbose_name = "Account"

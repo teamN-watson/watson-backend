@@ -1,3 +1,4 @@
+from django.db.models import Count, Q
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -5,6 +6,7 @@ from rest_framework import status
 from django.shortcuts import get_object_or_404
 from .models import Review, ReviewComment, ReviewLike
 from .serializers import ReviewSerializer, ReviewCommentSerializer, ReviewLikeSerializer
+from django.db.models import Count
 
 
 class ReviewAPIView(APIView):
@@ -24,9 +26,25 @@ class ReviewAPIView(APIView):
     
     def get(self, request):
         """리뷰 목록 조회"""
-        reviews = Review.objects.all()
+        sort_by = request.query_params.get('sort_by', 'recent')  # 기본 정렬 기준: 최신순
+
+        # annotate로 좋아요 및 비추천 수 계산
+        reviews = Review.objects.annotate(
+            total_likes=Count('likes', filter=Q(likes__is_active=1)),
+            total_dislikes=Count('likes', filter=Q(likes__is_active=-1))
+        )
+
+        # 정렬 기준 적용
+        if sort_by == 'popular':  # 인기순
+            reviews = reviews.order_by('-total_likes', '-created_at')
+        elif sort_by == 'views':  # 조회순
+            reviews = reviews.order_by('-view_count', '-created_at')
+        else:  # 최신순
+            reviews = reviews.order_by('-created_at')
+
         serializer = ReviewSerializer(reviews, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
 
     def post(self, request):
         """새 리뷰 생성"""

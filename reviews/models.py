@@ -19,6 +19,7 @@ class Review(models.Model):
     blank=True,
     default=None  # 평점은 필수가 아님
     ) # 별점: 0.5 단위(별 반개 단위), 최대 5.0 (별 다섯개)
+    view_count = models.PositiveIntegerField(default=0) # 조회수
     created_at = models.DateTimeField(auto_now_add=True)  # 리뷰 생성 시간
     updated_at = models.DateTimeField(auto_now=True)  # 리뷰 수정 시간
 
