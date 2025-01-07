@@ -29,30 +29,32 @@ class ReviewLikeSerializer(serializers.ModelSerializer):
         return obj.user.nickname if obj.user else "알수없음"
 
 
+from rest_framework import serializers
+from .models import Review
+from .serializers import ReviewCommentSerializer
+
+
 class ReviewSerializer(serializers.ModelSerializer):
     """Review 모델 직렬화"""
-    nickname = serializers.SerializerMethodField()
+    nickname = serializers.SerializerMethodField()  # 사용자 닉네임 반환
     comments = ReviewCommentSerializer(many=True, read_only=True)  # 연결된 댓글들
-    total_likes = serializers.SerializerMethodField()
-    total_dislikes = serializers.SerializerMethodField()
+    total_likes = serializers.IntegerField(read_only=True)  # annotate로 계산된 값
+    total_dislikes = serializers.IntegerField(read_only=True)  # annotate로 계산된 값
 
     class Meta:
         model = Review
-        fields = ['id', 'user', 'nickname', 'content', 'app_id', 'score', 'created_at', 'updated_at', 'comments', 'total_likes', 'total_dislikes']
-        read_only_fields = ['id', 'created_at', 'updated_at', 'comments', 'total_likes', 'total_dislikes']
+        fields = [
+            'id', 'user', 'nickname', 'content', 'app_id', 'score', 
+            'created_at', 'updated_at', 'comments', 'total_likes', 'total_dislikes'
+        ]
+        read_only_fields = [
+            'id', 'created_at', 'updated_at', 'comments', 'total_likes', 'total_dislikes'
+        ]
 
     def get_nickname(self, obj):
         """유저 닉네임 반환 (유저가 없으면 '알수없음')"""
         return obj.user.nickname if obj.user else "알수없음"
 
-    def get_total_likes(self, obj):
-        """총 좋아요(추천) 수 반환"""
-        return obj.likes.filter(is_active=1).count()
-
-    def get_total_dislikes(self, obj):
-        """총 비추천 수 반환"""
-        return obj.likes.filter(is_active=-1).count()
-    
     def validate_score(self, value):
         """
         평점 검증: 0.5~5.0 사이의 값만 허용하고, 0.5 단위로 작성되어야 함.
@@ -62,3 +64,4 @@ class ReviewSerializer(serializers.ModelSerializer):
         if value * 10 % 5 != 0:
             raise serializers.ValidationError("평점은 0.5 단위로 작성되어야 합니다.")
         return value
+
