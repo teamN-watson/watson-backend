@@ -11,45 +11,51 @@ from accounts.models import Tag
 from django.core.management.base import BaseCommand
 from django_seed import Seed
 from accounts.models import Account, Interest, Tag
+import environ
+import requests
 
 
 class Command(BaseCommand):
     help = "이 커맨드를 통해 태그 데이터를 만듭니다."
 
     def handle(self, *args, **options):
-        # 브라우저 드라이버 설정
-        driver = webdriver.Chrome()
+        env = environ.Env()
+        api_key = env("STEAM_API_KEY")
 
-        # 특정 URL에 연결하는 부분 (첫 페이지 열기)
-        driver.get("https://store.steampowered.com/tag/browse/survival#global_1659")
+        api_url = "https://api.steampowered.com/IStoreService/GetMostPopularTags/v1/"
 
-        # 데이터 저장할 리스트
-        category = []
+        try:
+            # 기본 파라미터 (영문 결과)
+            params_en = {
+                "key": api_key,
+            }
 
-        # 페이지 로딩 기다림 (필요 시 명시적으로 WebDriverWait 사용 가능)
-        time.sleep(2)
+            # 한글 결과를 위한 파라미터 추가
+            params_ko = {"key": api_key, "language": "koreana"}
 
-        # 1) 우선 bbs_table_body를 갖는 요소(루트) 찾기
-        root = driver.find_element(
-            By.XPATH, "//div[@class='tag_browse_tags peeking_carousel']"
-        )
-        # 2) 그 안에서 class="tag_browse_tag"를 갖는 div 모두 찾기
-        tag_divs = root.find_elements(By.XPATH, ".//div[@class='tag_browse_tag']")
+            response_en = requests.get(api_url, params=params_en)
+            response_ko = requests.get(api_url, params=params_ko)
 
-        for div in tag_divs:
-            # 태그 제목, 아이디 추출
-            title = div.text
-            tag_id = div.get_attribute("data-tagid")
+            # 요청 성공 여부 확인
+            if response_en.status_code == 200 and response_ko.status_code == 200:
+                data_en = response_en.json()  # 영문 데이터
+                data_ko = response_ko.json()  # 한글 데이터
 
-            # 추출된 데이터 저장
-            data = {"title": title, "tag_id": tag_id}
+                data_en_dict = {
+                    item["tagid"]: item["name"] for item in data_en["response"]["tags"]
+                }
+                data_ko_dict = {
+                    item["tagid"]: item["name"] for item in data_ko["response"]["tags"]
+                }
 
-            Tag.objects.get_or_create(name=title, steam_tag_id=tag_id)
+                for data in data_en["response"]["tags"]:
+                    Tag.objects.get_or_create(
+                        name_en=data_en_dict[data["tagid"]],
+                        name_ko=data_ko_dict[data["tagid"]],
+                        steam_tag_id=data["tagid"],
+                    )
 
-            category.append(data)
+                self.stdout.write(self.style.SUCCESS(f"인기 태그 정보 생성 완료."))
 
-        driver.quit()
-
-        # # JSON 파일로 저장
-        # with open("category.json", "w", encoding="utf-8") as json_file:
-        #     json.dump(category, json_file, ensure_ascii=False, indent=4)
+        except requests.exceptions.RequestException as e:
+            self.stderr.write(self.style.ERROR(f"Error fetching data: {e}"))
