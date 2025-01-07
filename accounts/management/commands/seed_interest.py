@@ -46,7 +46,7 @@ class Command(BaseCommand):
         for game in games:
             interest, _ = Interest.objects.get_or_create(name=game["name"])
             for tag in game["tags"]:
-                get_tag = Tag.objects.get(name=tag)
+                get_tag = Tag.objects.get(name_en=tag)
                 interest.tags.add(get_tag)
 
         self.stdout.write(self.style.SUCCESS(f"게임 태그 정보 생성 완료."))
