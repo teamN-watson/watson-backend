@@ -8,7 +8,7 @@ class ReviewCommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = ReviewComment
         fields = ['id', 'review', 'user', 'nickname', 'content', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'review', 'created_at', 'updated_at']
 
     def get_nickname(self, obj):
         """유저 닉네임 반환 (유저가 없으면 '알수없음')"""
