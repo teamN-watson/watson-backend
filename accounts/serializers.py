@@ -1,11 +1,13 @@
 from rest_framework import serializers
 from .models import Account
 from django.contrib.auth.hashers import make_password  # 비밀번호 해싱
+from django.core.validators import validate_email
+import re
 
 
 class AccountSerializer(serializers.ModelSerializer):
     user_id = serializers.CharField(
-        required=True, error_messages={"required": "유저 아이디 값은 필수입니다."}
+        required=True, error_messages={"required": "유저 아이디 입력은 필수입니다."}
     )
     email = serializers.EmailField(
         required=True,
@@ -14,8 +16,11 @@ class AccountSerializer(serializers.ModelSerializer):
             "invalid": "올바른 이메일 형식으로 입력해주세요.",
         },
     )
+    nickname = serializers.CharField(
+        required=True, error_messages={"required": "닉네임은 입력은 필수입니다."}
+    )
     age = serializers.IntegerField(
-        required=True, error_messages={"required": "나이 값은 필수입니다."}
+        required=True, error_messages={"required": "나이 입력은 필수입니다."}
     )
     password = serializers.CharField(
         write_only=True,
@@ -40,9 +45,17 @@ class AccountSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {"message": "이미 사용중인 아이디 입니다."}
             )
+        elif re.match(r"[^@]+@[^@]+\.[^@]+", data["user_id"]):
+            raise serializers.ValidationError(
+                {"message": "아이디는 이메일 형식을 지원하지 않습니다."}
+            )
         if Account.objects.filter(email=data["email"]).exists():
             raise serializers.ValidationError(
                 {"message": "이미 사용중인 이메일 입니다."}
+            )
+        if Account.objects.filter(nickname=data["nickname"]).exists():
+            raise serializers.ValidationError(
+                {"message": "이미 사용중인 닉네임 입니다."}
             )
         return data
 

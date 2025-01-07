@@ -77,7 +77,7 @@ class Account(AbstractBaseUser):
     objects = AccountManager()
 
     USERNAME_FIELD = "user_id"
-    REQUIRED_FIELDS = ["email", "age"]
+    REQUIRED_FIELDS = ["email", "age", "nickname"]
 
     class Meta:
         verbose_name = "Account"
