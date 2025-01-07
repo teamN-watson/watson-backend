@@ -12,7 +12,13 @@ class Review(models.Model):
     )
     content = models.TextField()  # 리뷰 내용
     app_id = models.IntegerField()  # Steam API에서 가져온 게임 ID (해당 게임 리뷰 작성 페이지로 이동할때 프론트엔드가 app_id 전달함)
-    score = models.DecimalField(max_digits=2, decimal_places=1, default=1.0)  # 별점: 0.5 단위(별 반개 단위), 최대 5.0 (별 다섯개)
+    score = models.DecimalField(
+    max_digits=2,
+    decimal_places=1,
+    null=True,
+    blank=True,
+    default=None  # 평점은 필수가 아님
+    ) # 별점: 0.5 단위(별 반개 단위), 최대 5.0 (별 다섯개)
     created_at = models.DateTimeField(auto_now_add=True)  # 리뷰 생성 시간
     updated_at = models.DateTimeField(auto_now=True)  # 리뷰 수정 시간
 
