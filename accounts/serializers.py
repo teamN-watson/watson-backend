@@ -69,6 +69,7 @@ class AccountSerializer(serializers.ModelSerializer):
             "age",
             "nickname",
             "photo",
+            "steamId",
         )
 
     def create(self, validated_data):
@@ -106,35 +107,40 @@ class AccountDetailSerializer(serializers.ModelSerializer):
 
 
 class AccountUpdateSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(
+        required=True,
+        error_messages={
+            "required": "이메일 값은 필수입니다.",
+            "invalid": "올바른 이메일 형식으로 입력해주세요.",
+        },
+    )
+    nickname = serializers.CharField(
+        required=True, error_messages={"required": "닉네임은 입력은 필수입니다."}
+    )
+    age = serializers.IntegerField(
+        required=True, error_messages={"required": "나이 입력은 필수입니다."}
+    )
+
     class Meta:
         model = Account
         fields = [
             "email",
-            "name",
+            "age",
             "nickname",
-            "birth_date",
-            "bio",
-            "gender",
+            "photo",
         ]
         extra_kwargs = {
             "email": {"required": True},
-            "name": {"required": True},
+            "age": {"required": True},
             "nickname": {"required": True},
-            "birth_date": {"required": True},
-            "bio": {"required": False},
-            "gender": {"required": False},
+            "photo": {"required": False},
         }
 
     def validate_email(self, value):
         user = self.context.get("user")
         email = user.email
         if value != email:
-            if (
-                Account.objects.exclude(id=user.id).filter(username=value).exists()
-                or Account.objects.filter(email=value).exists()
-            ):
-                raise serializers.ValidationError(
-                    "This email already taken by another user."
-                )
+            if Account.objects.filter(email=value).exists():
+                raise serializers.ValidationError("해당 이메일은 이미 사용중입니다.")
 
         return value
