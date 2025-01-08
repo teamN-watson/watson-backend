@@ -7,31 +7,49 @@ import re
 
 class AccountSerializer(serializers.ModelSerializer):
     user_id = serializers.CharField(
-        required=True, error_messages={"required": "유저 아이디 입력은 필수입니다."}
+        required=True,
+        error_messages={
+            "required": "유저 아이디 입력은 필수입니다.",
+            "blank": "아이디를 입력해주세요.",
+        },
     )
     email = serializers.EmailField(
         required=True,
         error_messages={
             "required": "이메일 값은 필수입니다.",
             "invalid": "올바른 이메일 형식으로 입력해주세요.",
+            "blank": "이메일를 입력해주세요.",
         },
     )
     nickname = serializers.CharField(
-        required=True, error_messages={"required": "닉네임은 입력은 필수입니다."}
+        required=True,
+        error_messages={
+            "required": "닉네임은 입력은 필수입니다.",
+            "blank": "닉네임을 입력해주세요.",
+        },
     )
     age = serializers.IntegerField(
-        required=True, error_messages={"required": "나이 입력은 필수입니다."}
+        required=True,
+        error_messages={
+            "required": "나이 입력은 필수입니다.",
+            "invalid": "올바른 나이를 입력해주세요.",
+            "blank": "나이를 입력해주세요.",
+        },
     )
     password = serializers.CharField(
         write_only=True,
         required=True,
-        error_messages={"required": "비밀번호 입력은 필수입니다."},
+        error_messages={
+            "required": "비밀번호 입력은 필수입니다.",
+            "blank": "비밀번호를 입력해주세요.",
+        },
     )
     confirm_password = serializers.CharField(
         write_only=True,
         required=True,
         error_messages={
             "required": "비밀번호 재입력은 필수입니다.",
+            "blank": "비밀번호를 재입력해주세요.",
         },
     )
 
