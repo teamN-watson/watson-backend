@@ -24,7 +24,7 @@ class Review(models.Model):
     models.CharField(max_length=50),
     default=list,
     blank=True
-    )
+    ) # 리뷰 카테고리
     view_count = models.PositiveIntegerField(default=0) # 조회수
     created_at = models.DateTimeField(auto_now_add=True)  # 리뷰 생성 시간
     updated_at = models.DateTimeField(auto_now=True)  # 리뷰 수정 시간
