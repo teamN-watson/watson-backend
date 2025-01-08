@@ -69,7 +69,7 @@ class AccountSerializer(serializers.ModelSerializer):
             "age",
             "nickname",
             "photo",
-            "is_steam",
+            "steamId",
         )
 
     def create(self, validated_data):
