@@ -4,7 +4,12 @@ from rest_framework.views import APIView
 
 from .models import Account
 
-from .serializers import AccountDeleteSerializer, AccountSerializer, AccountUpdateSerializer, LoginSerializer
+from .serializers import (
+    AccountDeleteSerializer,
+    AccountSerializer,
+    AccountUpdateSerializer,
+    LoginSerializer,
+)
 from reviews.serializers import ReviewSerializer
 from rest_framework import status
 from rest_framework.response import Response
@@ -19,6 +24,8 @@ from django.shortcuts import get_object_or_404
 from rest_framework.exceptions import AuthenticationFailed
 from django.core.serializers import serialize
 from django.contrib.auth.hashers import check_password
+from django.core.exceptions import ObjectDoesNotExist
+
 
 @api_view(["POST"])
 def signup(request):
@@ -55,17 +62,16 @@ def signin(request):
         # 입력 데이터에서 사용자 인증
         user_id = serializer.validated_data["user_id"]
         password = serializer.validated_data["password"]
+
+        try:
+            Account.objects.get(user_id=user_id)
+        except ObjectDoesNotExist:
+            return Response({"message": "계정을 찾을 수 없습니다."}, status=400)
+
         user = authenticate(request, user_id=user_id, password=password)
+
         if not user:
-            account = get_object_or_404(Account, user_id=user_id)
-            if account is not None and account.is_active is False:
-                return Response(
-                    {"message": "This user is deactivated"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            raise AuthenticationFailed("Invalid user_id or password.")
-
+            return Response({"message": "잘못된 로그인 정보입니다."}, status=400)
         # 인증 성공: Token 발급 (or JWT 발급)
         refresh = RefreshToken.for_user(user)
 
@@ -106,26 +112,25 @@ def logout(request):
 class MypageAPIView(APIView):
 
     @permission_classes([IsAuthenticated])
-    def get(self, request):        
+    def get(self, request):
         if request.user:
-            reviews = request.user.reviews.all()            
+            reviews = request.user.reviews.all()
             reviews_data = ReviewSerializer(reviews, many=True).data
             profile_data = AccountSerializer(request.user).data
 
-            
             return JsonResponse(
                 {
                     "message": "You are authenticated",
                     "data": {
-                        "reviews" : reviews_data,
-                        "profile" : profile_data,
+                        "reviews": reviews_data,
+                        "profile": profile_data,
                         "friends": {},
                     },
                 }
-            ) 
+            )
         else:
             return Response({"message": "Invalid request."}, status=400)
-        
+
     @permission_classes([IsAuthenticated])
     def put(self, request):
         user = request.user
@@ -149,8 +154,10 @@ class MypageAPIView(APIView):
             else:
                 return Response(check_serializer.errors, status=status.HTTP_201_CREATED)
 
-        return Response({"message": "잘못된 접근입니다."}, status=status.HTTP_400_BAD_REQUEST)
-    
+        return Response(
+            {"message": "잘못된 접근입니다."}, status=status.HTTP_400_BAD_REQUEST
+        )
+
     @permission_classes([IsAuthenticated])
     def delete(self, request):
         user = request.user
@@ -165,12 +172,14 @@ class MypageAPIView(APIView):
                 if check_password(password, user.password):
                     user.delete()
                     data = {"message": "user deleted."}
-                    
-                    #++ 토큰은 어떻게 처리?
+
+                    # ++ 토큰은 어떻게 처리?
                     return Response(data, status=status.HTTP_200_OK)
                 return Response(
                     {"message": "Password does not match."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-        return Response({"message": "잘못된 접근입니다."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"message": "잘못된 접근입니다."}, status=status.HTTP_400_BAD_REQUEST
+        )
