@@ -9,7 +9,7 @@
         <link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}">
         <link rel="stylesheet" type="text/css" href="{% static 'css/navbar.css' %}">
         <script src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
-        {% comment %} <script src="{% static 'js/index.js' %}"></script> {% endcomment %}
+        <script src="{% static 'js/index.js' %}"></script>
         {% block extrahead %}{% endblock %}
 
     </head>
@@ -30,29 +30,6 @@
                     </div>
                     <div>
                         <div class="nav_auth">
-                            {% if request.user.is_authenticated %}
-                            <div class="user_photo">
-                                {% if user.photo %}
-                                <img src="/media/{{user.photo}}" />
-                                {% else %}
-                                <img src="/static/images/default_profile.png" />
-                                {% endif %}
-                            </div>
-                            {% if user.username %}
-                            <h3>{{ user.username }}님</h3>
-                            {% else %}
-                            <h3>{{ user.user_id }}님</h3>
-                            {% endif %}
-                            <form action="{% url 'front:logout' %}" method="POST">
-                                {% csrf_token %}
-                                <input type="submit" value="로그아웃">
-                            </form>
-                            <a href="{% url 'front:mypage'%}">마이페이지</a>
-                            <a href="{% url 'products:create_product'%}">상품 등록</a>
-                            {% else %}
-                            <a href="{% url 'front:signin'%}">로그인</a>
-                            <a href="{% url 'front:signup'%}">회원가입</a>
-                            {% endif %}                    
                         </div>
                     </div>
                 </div>

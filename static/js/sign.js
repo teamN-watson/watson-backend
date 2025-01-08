@@ -17,7 +17,13 @@ $(document).ready(function() {
             },
             success: function(data){
                 console.log(data)
-                // location.href = "/"
+                if(data.access_token){
+                    sessionStorage.setItem('access_token', data.access_token);
+                }
+                if(data.refresh_token){
+                    sessionStorage.setItem('refresh_token', data.refresh_token);
+                }
+                location.href = "/"
             },
             error: function(data){
                 console.log(data)
@@ -43,6 +49,12 @@ $(document).ready(function() {
             },
             success: function(data){
                 console.log(data)
+                if(data.access_token){
+                    localStorage.setItem('access_token', data.access_token);
+                }
+                if(data.refresh_token){
+                    localStorage.setItem('refresh_token', data.refresh_token);
+                }
                 // location.href = "/"
             },
             error: function(data){
