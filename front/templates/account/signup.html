@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% load static %}
+{% block extrahead %}
+<link rel="stylesheet" type="text/css" href="{% static "css/account/sign.css" %}">
+{% endblock %}
+{% block content %}
+<div class="signContainer">
+    <div class="signForm signinForm">
+        <h2>로그인</h2>
+        <form action="{% url "accounts:signin" %}" method="POST">
+            {% csrf_token %}
+            <input type="text" name="user_id" autofocus="" placeholder="아이디를 입력해주세요" required="" id="id_user_id">
+            <input type="password" name="password" autocomplete="current-password" placeholder="비밀번호를 입력해주세요" required="" id="id_password">
+            <input type="submit" value="로그인">
+
+        </form>
+    </div>
+</div>
+
+{% endblock content %}

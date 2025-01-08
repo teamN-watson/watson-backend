@@ -43,15 +43,15 @@
                             {% else %}
                             <h3>{{ user.user_id }}님</h3>
                             {% endif %}
-                            <form action="{% url 'accounts:logout' %}" method="POST">
+                            <form action="{% url 'front:logout' %}" method="POST">
                                 {% csrf_token %}
                                 <input type="submit" value="로그아웃">
                             </form>
-                            <a href="{% url 'accounts:mypage'%}">마이페이지</a>
+                            <a href="{% url 'front:mypage'%}">마이페이지</a>
                             <a href="{% url 'products:create_product'%}">상품 등록</a>
                             {% else %}
-                            <a href="{% url 'accounts:signin'%}">로그인</a>
-                            <a href="{% url 'accounts:signup'%}">회원가입</a>
+                            <a href="{% url 'front:signin'%}">로그인</a>
+                            <a href="{% url 'front:signup'%}">회원가입</a>
                             {% endif %}                    
                         </div>
                     </div>

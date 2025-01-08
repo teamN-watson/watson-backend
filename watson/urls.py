@@ -20,8 +20,10 @@ from django.urls import path
 from django.urls.conf import include
 from django.conf import settings
 from django.conf.urls.static import static
+from front import views
 
 urlpatterns = [
+    path("", views.index, name="index"),
     path("admin/", admin.site.urls),
     path("view/", include("front.urls")),
     path("api/account/", include("accounts.urls")),
