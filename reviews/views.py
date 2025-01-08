@@ -47,7 +47,7 @@ class ReviewAPIView(APIView):
 
 
     def post(self, request):
-        """새 리뷰 생성"""
+        """새 리뷰 생성 장르 넣는걸 추가"""
         serializer = ReviewSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save(user=request.user)  # 현재 요청 유저를 저장

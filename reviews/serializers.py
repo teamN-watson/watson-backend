@@ -29,9 +29,6 @@ class ReviewLikeSerializer(serializers.ModelSerializer):
         return obj.user.nickname if obj.user else "알수없음"
 
 
-from rest_framework import serializers
-from .models import Review
-from .serializers import ReviewCommentSerializer
 
 
 class ReviewSerializer(serializers.ModelSerializer):
