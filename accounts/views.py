@@ -25,6 +25,7 @@ from rest_framework.exceptions import AuthenticationFailed
 from django.core.serializers import serialize
 from django.contrib.auth.hashers import check_password
 from django.core.exceptions import ObjectDoesNotExist
+from rest_framework_simplejwt.authentication import JWTAuthentication
 
 
 @api_view(["POST"])
@@ -46,8 +47,8 @@ def signup(request):
             {
                 "message": "회원가입 되었습니다.",
                 "data": {
-                    "refreshToken": str(refresh),
-                    "accessToken": str(refresh.access_token),
+                    "refresh_token": str(refresh),
+                    "access_token": str(refresh.access_token),
                     "user": serializer.data,
                 },
             },
@@ -79,14 +80,12 @@ def signin(request):
         return Response(
             {
                 "message": "Login successful.",
-                "data": {
-                    "refreshToken": str(refresh),
-                    "accessToken": str(refresh.access_token),
-                    "user": {
-                        "user_id": user.user_id,
-                        "email": user.email,
-                        "nickname": user.nickname,
-                    },
+                "refresh_token": str(refresh),
+                "access_token": str(refresh.access_token),
+                "user": {
+                    "user_id": user.user_id,
+                    "email": user.email,
+                    "nickname": user.nickname,
                 },
                 # "token": token.key,
             },
@@ -101,7 +100,7 @@ def signin(request):
 def logout(request):
     try:
         # 현재 사용자의 refresh token을 블랙리스트에 추가
-        refresh_token = RefreshToken(request.data["refreshToken"])
+        refresh_token = RefreshToken(request.data["refresh_token"])
         refresh_token.blacklist()
 
         return Response({"message": "Successfully logged out."}, status=200)
@@ -121,11 +120,9 @@ class MypageAPIView(APIView):
             return JsonResponse(
                 {
                     "message": "You are authenticated",
-                    "data": {
-                        "reviews": reviews_data,
-                        "profile": profile_data,
-                        "friends": {},
-                    },
+                    "reviews": reviews_data,
+                    "profile": profile_data,
+                    "friends": {},
                 }
             )
         else:
@@ -183,3 +180,46 @@ class MypageAPIView(APIView):
         return Response(
             {"message": "잘못된 접근입니다."}, status=status.HTTP_400_BAD_REQUEST
         )
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def token(request):
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    if not token:
+        return Response(
+            {"message": "잘못된 접근입니다."}, status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        jwt_auth = JWTAuthentication()
+        validated_token = jwt_auth.get_validated_token(token)
+        user = jwt_auth.get_user(validated_token)
+        return JsonResponse(
+            {
+                "user_id": user.user_id,
+                "email": user.email,
+                "nickname": user.nickname,
+                "age": user.age,
+                "photo": user.photo.url if user.photo else "",
+                "steamId": user.steamId,
+            },
+            status=status.HTTP_200_OK,
+        )
+    except AuthenticationFailed:
+        return Response(
+            {"message": "잘못된 접근입니다."}, status=status.HTTP_400_BAD_REQUEST
+        )
+
+
+def refresh_token_view(request):
+    refresh_token = request.data.get("refresh_token")
+    if not refresh_token:
+        return Response({"message": "Refresh token이 없습니다."}, status=400)
+
+    try:
+        refresh = RefreshToken(refresh_token)
+        access_token = str(refresh.access_token)  # 새 Access Token 발급
+        return Response({"access_token": access_token}, status=200)
+    except TokenError:
+        return Response({"message": "유효하지 않은 Refresh token입니다."}, status=400)
