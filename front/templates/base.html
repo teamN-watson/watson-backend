@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Watson</title>
+        {% load static %}
+        <link rel="shortcut icon" href="{% static 'images/favicon.ico' %}">
+        <link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}">
+        <link rel="stylesheet" type="text/css" href="{% static 'css/navbar.css' %}">
+        <script src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
+        {% comment %} <script src="{% static 'js/index.js' %}"></script> {% endcomment %}
+        {% block extrahead %}{% endblock %}
+
+    </head>
+    <body>
+        <header>
+            <nav class="navbar">
+                <div class="container">
+                    <div>
+                        <a href="/" class="logo">
+                            Watson
+                        </a>
+                    </div>
+                    <div>
+                        <ul class="menu">
+                            <li><a href="/search">리뷰</a></li>
+                            <li><a href="/search">게임</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <div class="nav_auth">
+                            {% if request.user.is_authenticated %}
+                            <div class="user_photo">
+                                {% if user.photo %}
+                                <img src="/media/{{user.photo}}" />
+                                {% else %}
+                                <img src="/static/images/default_profile.png" />
+                                {% endif %}
+                            </div>
+                            {% if user.username %}
+                            <h3>{{ user.username }}님</h3>
+                            {% else %}
+                            <h3>{{ user.user_id }}님</h3>
+                            {% endif %}
+                            <form action="{% url 'accounts:logout' %}" method="POST">
+                                {% csrf_token %}
+                                <input type="submit" value="로그아웃">
+                            </form>
+                            <a href="{% url 'accounts:mypage'%}">마이페이지</a>
+                            <a href="{% url 'products:create_product'%}">상품 등록</a>
+                            {% else %}
+                            <a href="{% url 'accounts:signin'%}">로그인</a>
+                            <a href="{% url 'accounts:signup'%}">회원가입</a>
+                            {% endif %}                    
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </header>
+        <main>
+            <div class="container">
+                {% block content %}
+                {% endblock content %}
+            </div>
+        </main>
+
+        <div class="loading">
+            <div>
+                <img src="/static/images/loading.gif" />
+                <h2>Loading...</h2>
+            </div>
+        </div>
+
+    </body>
+</html>
