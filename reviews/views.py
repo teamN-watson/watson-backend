@@ -47,7 +47,7 @@ class ReviewAPIView(APIView):
 
 
     def post(self, request):
-        """새 리뷰 생성 장르 넣는걸 추가"""
+        """새 리뷰 생성 """
         serializer = ReviewSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save(user=request.user)  # 현재 요청 유저를 저장
@@ -72,6 +72,11 @@ class ReviewDetailAPIView(APIView):
     def get(self, request, pk):
         """특정 리뷰 조회"""
         review = get_object_or_404(Review, pk=pk)
+
+        # 조회수 증가 로직
+        review.view_count += 1
+        review.save()
+        
         serializer = ReviewSerializer(review)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
