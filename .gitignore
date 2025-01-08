@@ -140,3 +140,5 @@ letsencrypt/
 
 SteamGamesDataset/games.csv
 SteamGamesDataset/games.json
+static
+

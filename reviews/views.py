@@ -4,8 +4,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.shortcuts import get_object_or_404
-from .models import Review, ReviewComment, ReviewLike
-from .serializers import ReviewSerializer, ReviewCommentSerializer, ReviewLikeSerializer
+from .models import Review, ReviewComment, ReviewLike, ReviewCommentLike
+from .serializers import ReviewSerializer, ReviewCommentSerializer, ReviewLikeSerializer, ReviewCommentLikeSerializer
 from django.db.models import Count
 
 
@@ -76,7 +76,7 @@ class ReviewDetailAPIView(APIView):
         # 조회수 증가 로직
         review.view_count += 1
         review.save()
-        
+
         serializer = ReviewSerializer(review)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -180,5 +180,29 @@ class ReviewLikeAPIView(APIView):
             )
             like_serializer = ReviewLikeSerializer(like)
             return Response(like_serializer.data, status=status.HTTP_200_OK if not created else status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class ReviewCommentLikeAPIView(APIView):
+    """
+    특정 댓글에 좋아요 또는 비추천 생성 및 상태 변경
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, comment_id):
+        """좋아요/비추천 생성 및 상태 변경"""
+        comment = get_object_or_404(ReviewComment, pk=comment_id)
+
+        serializer = ReviewCommentLikeSerializer(data=request.data)
+        if serializer.is_valid():
+            # 기존 좋아요/비추천 업데이트 또는 새로 생성
+            like, created = ReviewCommentLike.objects.update_or_create(
+                user=request.user, comment=comment, defaults={"is_active": serializer.validated_data["is_active"]}
+            )
+            like_serializer = ReviewCommentLikeSerializer(like)
+            return Response(
+                like_serializer.data,
+                status=status.HTTP_200_OK if not created else status.HTTP_201_CREATED
+            )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
