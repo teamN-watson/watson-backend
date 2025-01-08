@@ -135,3 +135,6 @@ cython_debug/
 # Let's Encrypt (Traefik)
 letsencrypt/
 .env
+**/migrations/*
+!**/migrations/__init__.py
+static
