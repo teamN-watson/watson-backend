@@ -26,6 +26,8 @@ from django.core.serializers import serialize
 from django.contrib.auth.hashers import check_password
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework_simplejwt.authentication import JWTAuthentication
+import environ
+import requests
 
 
 @api_view(["POST"])
@@ -112,17 +114,88 @@ class MypageAPIView(APIView):
 
     @permission_classes([IsAuthenticated])
     def get(self, request):
-        if request.user:
-            reviews = request.user.reviews.all()
-            reviews_data = ReviewSerializer(reviews, many=True).data
-            profile_data = AccountSerializer(request.user).data
+        user = request.user
+        if user:
+            reviews = user.reviews.all()
+            data = {
+                "reviews_data": ReviewSerializer(reviews, many=True).data,
+                "profile_data": AccountSerializer(user).data,
+                "friends": {},
+            }
+
+            if user.steamId != None and user.steamId != "":
+                api_url = (
+                    "https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/"
+                )
+
+                try:
+                    env = environ.Env()
+                    api_key = env("STEAM_API_KEY")
+                    # 기본 파라미터 (영문 결과)
+                    params = {
+                        "key": api_key,
+                        "steamid": user.steamId,
+                        "include_appinfo": True,
+                    }
+
+                    # 한글 결과를 위한 파라미터 추가
+                    response = requests.get(api_url, params=params)
+
+                    # 요청 성공 여부 확인
+                    if response.status_code == 200:
+                        response_data = response.json()["response"]
+                        owned_games = sorted(
+                            response_data["games"],
+                            key=(lambda x: x["playtime_forever"]),
+                            reverse=True,
+                        )
+
+                        data["owned_games"] = {
+                            "games": owned_games[:5],
+                            "game_count": response_data["game_count"],
+                        }
+
+                except requests.exceptions.RequestException as e:
+                    return Response({"message": "Invalid request."}, status=400)
+
+                api_url = "https://api.steampowered.com/IPlayerService/GetRecentlyPlayedGames/v1/"
+
+                try:
+                    params = {"key": api_key, "steamid": user.steamId, "count": 3}
+
+                    # 한글 결과를 위한 파라미터 추가
+                    response = requests.get(api_url, params=params)
+
+                    # 요청 성공 여부 확인
+                    if response.status_code == 200:
+                        response_data = response.json()["response"]
+                        data["recent_games"] = response_data
+
+                except requests.exceptions.RequestException as e:
+                    return Response({"message": "Invalid request."}, status=400)
+
+                api_url = (
+                    "https://api.steampowered.com/IPlayerService/GetAnimatedAvatar/v1/"
+                )
+
+                try:
+                    params = {"key": api_key, "steamid": user.steamId}
+
+                    # 한글 결과를 위한 파라미터 추가
+                    response = requests.get(api_url, params=params)
+
+                    # 요청 성공 여부 확인
+                    if response.status_code == 200:
+                        response_data = response.json()["response"]
+                        data["animated_avatar"] = response_data
+
+                except requests.exceptions.RequestException as e:
+                    return Response({"message": "Invalid request."}, status=400)
 
             return JsonResponse(
                 {
                     "message": "You are authenticated",
-                    "reviews": reviews_data,
-                    "profile": profile_data,
-                    "friends": {},
+                    "data": data,
                 }
             )
         else:
