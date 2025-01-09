@@ -26,4 +26,5 @@ urlpatterns = [
     path("logout/", views.logout, name="logout"),
     path("mypage/", views.MypageAPIView.as_view(), name="mypage"),
     path("token/", views.token, name="token"),
+    path("refresh/", views.refresh, name="refresh"),
 ]
