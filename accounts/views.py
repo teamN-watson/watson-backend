@@ -212,7 +212,8 @@ def token(request):
         )
 
 
-def refresh_token_view(request):
+@api_view(["POST"])
+def refresh(request):
     refresh_token = request.data.get("refresh_token")
     if not refresh_token:
         return Response({"message": "Refresh token이 없습니다."}, status=400)
