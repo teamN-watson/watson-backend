@@ -137,4 +137,7 @@ letsencrypt/
 .env
 **/migrations/*
 !**/migrations/__init__.py
-static
+
+SteamGamesDataset/games.csv
+SteamGamesDataset/games.json
+
