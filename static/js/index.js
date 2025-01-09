@@ -91,8 +91,8 @@ $(document).ready(function() {
             } else {
                 console.log(refreshResponse.status)
                 console.error("Refresh 토큰이 만료되었습니다.");
-                // sessionStorage.removeItem("access_token");
-                // sessionStorage.removeItem("refresh_token");
+                sessionStorage.removeItem("access_token");
+                sessionStorage.removeItem("refresh_token");
                 // 로그아웃 처리 필요
                 if(location.pathname != "/" && location.pathname != "/view/signin" && 
                     location.pathname != "/view/signup")location.href ="/"
