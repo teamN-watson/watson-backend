@@ -21,6 +21,14 @@ $(document).ready(function() {
             user_info.append(`<p id="user_email">이메일 : ${profile.email}</p>`)
             user_info.append(`<p id="user_nickname">닉네임 : ${profile.nickname}</p>`)
             user_info.append(`<p id="user_age">나이 : ${profile.age}</p>`)
+
+            if(profile.steamId == null || profile.steamId == ""){
+            user_info.append(`<a href="/view/steam/login/?user_id=${profile.user_id}" class="btn btn-steam-login">
+                Login with Steam
+            </a>`)
+            } else {
+                user_info.append(`<p id="user_steamId">스팀ID : ${profile.steamId}</p>`)
+            }
             
 
             console.log(data)
