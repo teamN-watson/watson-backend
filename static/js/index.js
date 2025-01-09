@@ -89,6 +89,7 @@ $(document).ready(function() {
                 options.headers.Authorization = `Bearer ${newAccessToken}`;
                 response = await fetch(url, options);
             } else {
+                console.log(refreshResponse.status)
                 console.error("Refresh 토큰이 만료되었습니다.");
                 sessionStorage.removeItem("access_token");
                 sessionStorage.removeItem("refresh_token");
