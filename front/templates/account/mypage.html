@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load static %}
+{% block extrahead %}
+<link rel="stylesheet" type="text/css" href="{% static "css/account/mypage.css" %}">
+<script src="{% static 'js/account/mypage.js' %}"></script>
+{% endblock %}
+{% block content %}
+<div class="mypageContainer">
+    <div class="mypage_wrap" id="wrap1">
+        <div class="user_photo"></div>
+        <div class="user_info">
+            <a href="{% url 'front:edit_account' %}">
+                <button>편집하기</button>
+            </a>
+            <span id="user_user_id"></span>
+            <span id="user_email"></span>
+            <span id="user_nickname"></span>
+            <span id="user_age"></span>
+        </div>
+    </div>
+</div>
+
+{% endblock content %}

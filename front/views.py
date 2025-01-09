@@ -11,3 +11,11 @@ def signin(request):
 
 def signup(request):
     return render(request, "account/signup.html")
+
+
+def mypage(request):
+    return render(request, "account/mypage.html")
+
+
+def edit_account(request):
+    return render(request, "account/edit_account.html")
