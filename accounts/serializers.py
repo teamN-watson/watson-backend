@@ -5,6 +5,110 @@ from django.core.validators import validate_email
 import re
 
 
+class SignupStep1Serializer(serializers.ModelSerializer):
+    user_id = serializers.CharField(
+        required=True,
+        error_messages={
+            "required": "유저 아이디 입력은 필수입니다.",
+            "blank": "아이디를 입력해주세요.",
+        },
+    )
+    password = serializers.CharField(
+        write_only=True,
+        required=True,
+        error_messages={
+            "required": "비밀번호 입력은 필수입니다.",
+            "blank": "비밀번호를 입력해주세요.",
+        },
+    )
+    confirm_password = serializers.CharField(
+        write_only=True,
+        required=True,
+        error_messages={
+            "required": "비밀번호 재입력은 필수입니다.",
+            "blank": "비밀번호를 재입력해주세요.",
+        },
+    )
+
+    def validate(self, data):
+        errors = {}
+
+        # 비밀번호와 확인용 비밀번호가 일치하는지 검증
+        if data["password"] != data["confirm_password"]:
+            errors["confirm_password"] = ["비밀번호가 일치하지 않습니다."]
+        # 이미 사용 중인 아이디가 있는지 확인
+        if Account.objects.filter(user_id=data["user_id"]).exists():
+            errors["user_id"] = ["이미 사용중인 아이디 입니다."]
+        # 아이디가 이메일 형식을 지원하지 않는지 확인
+        elif re.match(r"[^@]+@[^@]+\.[^@]+", data["user_id"]):
+            errors["user_id"] = ["아이디는 이메일 형식을 지원하지 않습니다."]
+        # 유효성 검사 후 에러가 있으면 ValidationError를 발생시킴
+        if errors:
+            raise serializers.ValidationError(errors)
+
+        return data
+
+    class Meta:
+        model = Account
+        fields = (
+            "user_id",
+            "password",
+            "confirm_password",
+            "photo",
+        )
+
+
+class SignupStep2Serializer(serializers.ModelSerializer):
+    email = serializers.EmailField(
+        required=True,
+        error_messages={
+            "required": "이메일 값은 필수입니다.",
+            "invalid": "올바른 이메일 형식으로 입력해주세요.",
+            "blank": "이메일를 입력해주세요.",
+        },
+    )
+    nickname = serializers.CharField(
+        required=True,
+        error_messages={
+            "required": "닉네임은 입력은 필수입니다.",
+            "blank": "닉네임을 입력해주세요.",
+        },
+    )
+    age = serializers.IntegerField(
+        required=True,
+        error_messages={
+            "required": "나이 입력은 필수입니다.",
+            "invalid": "올바른 나이를 입력해주세요.",
+            "blank": "나이를 입력해주세요.",
+        },
+    )
+
+    def validate(self, data):
+        errors = {}
+
+        # 이미 사용 중인 이메일이 있는지 확인
+        if Account.objects.filter(email=data["email"]).exists():
+            errors["email"] = ["이미 사용중인 이메일 입니다."]
+
+        # 이미 사용 중인 닉네임이 있는지 확인
+        if Account.objects.filter(nickname=data["nickname"]).exists():
+            errors["nickname"] = ["이미 사용중인 닉네임 입니다."]
+
+        # 유효성 검사 후 에러가 있으면 ValidationError를 발생시킴
+        if errors:
+            raise serializers.ValidationError(errors)
+
+        return data
+
+    class Meta:
+        model = Account
+        fields = (
+            "email",
+            "age",
+            "nickname",
+        )
+
+
 class AccountSerializer(serializers.ModelSerializer):
     user_id = serializers.CharField(
         required=True,

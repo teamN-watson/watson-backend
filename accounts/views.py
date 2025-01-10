@@ -9,6 +9,8 @@ from .serializers import (
     AccountUpdateSerializer,
     InterestSerializer,
     LoginSerializer,
+    SignupStep1Serializer,
+    SignupStep2Serializer,
 )
 from reviews.serializers import ReviewSerializer
 from rest_framework import status
@@ -34,13 +36,18 @@ from accounts import serializers
 
 @api_view(["POST"])
 def signup(request):
-    serializer = AccountSerializer(data=request.data)
-    if serializer.is_valid(raise_exception=True):
-        step = request.data["step"]
-        if step == "1":
+    step = request.data["step"]
+    if step == "1":
+        serializer = SignupStep1Serializer(data=request.data)
+        if serializer.is_valid(raise_exception=True):
             return Response({"message": "정상적인 요청입니다."}, status=200)
-
-        elif step == "2":
+    elif step == "2":
+        serializer = SignupStep2Serializer(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            return Response({"message": "정상적인 요청입니다."}, status=200)
+    elif step == "3":
+        serializer = AccountSerializer(data=request.data)
+        if serializer.is_valid(raise_exception=True):
             select_ids = request.data.get("select_id").split(",")
             print(select_ids)
             if len(select_ids) == 0:
@@ -72,9 +79,9 @@ def signup(request):
                 status=status.HTTP_201_CREATED,
             )
         else:
-            return Response({"message": "잘못된 요청3입니다."}, status=400)
+            return Response({"message": "잘못된 입력값입니다."}, status=400)
     else:
-        return Response({"message": "잘못된 입력값입니다."}, status=400)
+        return Response({"message": "잘못된 요청3입니다."}, status=400)
 
 
 @api_view(["POST"])
