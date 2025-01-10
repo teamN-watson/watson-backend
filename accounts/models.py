@@ -3,6 +3,16 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from accounts.utils import OverwriteStorage, rename_imagefile_to_uid
 from django.conf import settings
 
+class Game(models.Model):
+    db_table = "accounts_game"
+    appID = models.IntegerField(unique=True, db_index=True)  # Steam App ID
+    name = models.CharField(max_length=255)  # 게임 이름
+    supported_languages = models.JSONField()  # 지원 언어 (JSON 형식으로 저장)
+    genres = models.JSONField()  # 장르 (JSON 형식으로 저장)
+    header_image = models.URLField()  # 헤더 이미지 URL
+
+    def __str__(self):
+        return self.name
 
 class Tag(models.Model):  # 게임의 태그
     name_en = models.CharField(max_length=50, unique=True)
