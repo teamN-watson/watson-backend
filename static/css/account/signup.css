@@ -1,5 +1,9 @@
+.signForm h2 {
+    text-align: center;
+}
 .signupStepForm {
     display: flex;
+    justify-content: center;
 }
 .signupStepForm .interest_list{
     display: flex;
@@ -48,9 +52,40 @@
 
 
 /* step */
-.signupStepForm.step2 .signupStep1 {
+
+.signupStepForm .user_photo_wrap {
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+}
+.signupStepForm .user_photo_wrap img{
+    text-align: center;
+    width: 100%;
+    height: 100%;
+    border: 1px solid black;
+    border-radius: 50%;
+    object-fit: cover;
+    cursor: pointer;
+}
+.signupStepForm .user_photo_wrap label#id_photo{
+    cursor: pointer;
+}
+.signupStepForm .user_photo {
+    width: 150px;
+    height: 150px;
+}
+
+
+.signupStepForm.step1 .signupStep2, .signupStepForm.step1 .signupStep3 {
     display: none;
 }
-.signupStepForm.step1 .signupStep2 {
+.signupStepForm.step2 .signupStep1, .signupStepForm.step2 .signupStep3 {
     display: none;
 }
+.signupStepForm.step3 .signupStep1, .signupStepForm.step3 .signupStep2 {
+    display: none;
+}
+

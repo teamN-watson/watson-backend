@@ -14,7 +14,7 @@ $(document).ready(function() {
             if(profile.photo == null || profile.photo == ""){
                 user_photo.append(`<img src="/static/images/default_profile.png" />`)
             }else{
-                user_photo.append(`<img src="/media/${profile.photo}" />`)
+                user_photo.append(`<img src="${profile.photo}" />`)
             }
             const animated_avatar = response.data.animated_avatar;
             if(animated_avatar !== undefined){
