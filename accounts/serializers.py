@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Account
+from .models import Account, Interest
 from django.contrib.auth.hashers import make_password  # 비밀번호 해싱
 from django.core.validators import validate_email
 import re
@@ -54,27 +54,31 @@ class AccountSerializer(serializers.ModelSerializer):
     )
 
     def validate(self, data):
+        errors = {}
+
         # 비밀번호와 확인용 비밀번호가 일치하는지 검증
         if data["password"] != data["confirm_password"]:
-            raise serializers.ValidationError(
-                {"message": "비밀번호가 일치하지 않습니다."}
-            )
+            errors["confirm_password"] = ["비밀번호가 일치하지 않습니다."]
+
+        # 이미 사용 중인 아이디가 있는지 확인
         if Account.objects.filter(user_id=data["user_id"]).exists():
-            raise serializers.ValidationError(
-                {"message": "이미 사용중인 아이디 입니다."}
-            )
+            errors["user_id"] = ["이미 사용중인 아이디 입니다."]
+        # 아이디가 이메일 형식을 지원하지 않는지 확인
         elif re.match(r"[^@]+@[^@]+\.[^@]+", data["user_id"]):
-            raise serializers.ValidationError(
-                {"message": "아이디는 이메일 형식을 지원하지 않습니다."}
-            )
+            errors["user_id"] = ["아이디는 이메일 형식을 지원하지 않습니다."]
+
+        # 이미 사용 중인 이메일이 있는지 확인
         if Account.objects.filter(email=data["email"]).exists():
-            raise serializers.ValidationError(
-                {"message": "이미 사용중인 이메일 입니다."}
-            )
+            errors["email"] = ["이미 사용중인 이메일 입니다."]
+
+        # 이미 사용 중인 닉네임이 있는지 확인
         if Account.objects.filter(nickname=data["nickname"]).exists():
-            raise serializers.ValidationError(
-                {"message": "이미 사용중인 닉네임 입니다."}
-            )
+            errors["nickname"] = ["이미 사용중인 닉네임 입니다."]
+
+        # 유효성 검사 후 에러가 있으면 ValidationError를 발생시킴
+        if errors:
+            raise serializers.ValidationError(errors)
+
         return data
 
     class Meta:
@@ -162,3 +166,9 @@ class AccountUpdateSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("해당 이메일은 이미 사용중입니다.")
 
         return value
+
+
+class InterestSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Interest
+        fields = ["id", "name"]  # 모든 필드를 직렬화

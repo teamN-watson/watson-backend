@@ -2,12 +2,13 @@ from django.shortcuts import render
 from rest_framework.decorators import api_view
 from rest_framework.views import APIView
 
-from .models import Account
+from .models import Account, AccountInterest, Interest
 
 from .serializers import (
     AccountDeleteSerializer,
     AccountSerializer,
     AccountUpdateSerializer,
+    InterestSerializer,
     LoginSerializer,
 )
 from reviews.serializers import ReviewSerializer
@@ -29,33 +30,52 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 import environ
 import requests
 
+from accounts import serializers
+
 
 @api_view(["POST"])
 def signup(request):
     serializer = AccountSerializer(data=request.data)
     if serializer.is_valid(raise_exception=True):
-        serializer.save()
-        # 인증 성공: Token 발급 (or JWT 발급)
+        step = request.data["step"]
+        if step == "1":
+            return Response({"message": "정상적인 요청입니다."}, status=200)
 
-        user = authenticate(
-            request,
-            user_id=request.data["user_id"],
-            password=request.data["password"],
-        )
-        refresh = RefreshToken.for_user(user)
+        elif step == "2":
+            select_ids = request.data.get("select_id").split(",")
+            print(select_ids)
+            if len(select_ids) == 0:
+                return Response({"message": "잘못된 요청2입니다."}, status=400)
 
-        # 응답 반환
-        return Response(
-            {
-                "message": "회원가입 되었습니다.",
-                "data": {
+            serializer.save()
+            # 인증 성공: Token 발급 (or JWT 발급)
+
+            user = authenticate(
+                request,
+                user_id=request.data["user_id"],
+                password=request.data["password"],
+            )
+            refresh = RefreshToken.for_user(user)
+            for select_id in select_ids:
+                interest = Interest.objects.get(
+                    id=int(select_id) + 1
+                )  # 관심사 객체 가져오기
+                AccountInterest.objects.create(account=user, interest=interest)
+
+            # 응답 반환
+            return Response(
+                {
+                    "message": "회원가입 되었습니다.",
                     "refresh_token": str(refresh),
                     "access_token": str(refresh.access_token),
                     "user": serializer.data,
                 },
-            },
-            status=status.HTTP_201_CREATED,
-        )
+                status=status.HTTP_201_CREATED,
+            )
+        else:
+            return Response({"message": "잘못된 요청3입니다."}, status=400)
+    else:
+        return Response({"message": "잘못된 입력값입니다."}, status=400)
 
 
 @api_view(["POST"])
@@ -255,7 +275,7 @@ class MypageAPIView(APIView):
         )
 
 
-@api_view(["POST"])
+@api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def token(request):
     token = request.headers.get("Authorization", "").replace("Bearer ", "")
@@ -297,3 +317,15 @@ def refresh(request):
         return Response({"access_token": access_token}, status=200)
     except TokenError:
         return Response({"message": "유효하지 않은 Refresh token입니다."}, status=400)
+
+
+@api_view(["GET"])
+def interest(request):
+    interests = Interest.objects.all()
+    print(interests)
+    serializer = InterestSerializer(interests, many=True)
+
+    return Response(
+        serializer.data,
+        status=status.HTTP_200_OK,
+    )
