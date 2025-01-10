@@ -5,7 +5,7 @@ $(document).ready(function() {
     const nav_auth = $('div.nav_auth');
     if(access_token){
         fetchWithToken('/api/account/token/', {
-            method: 'POST',
+            method: 'GET',
         }).then((data) => {
             console.log(data)
             if(data.user_id !== undefined){
