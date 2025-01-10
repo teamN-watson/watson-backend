@@ -82,7 +82,7 @@ $(document).ready(function() {
         } 
     })
 
-    $("div.signupForm form").submit(function(e) {
+    $("div.signContainer form").submit(function(e) {
         e.preventDefault();
         const step = $("input[name='step']").val()
         if(step == 1){
@@ -184,8 +184,8 @@ $(document).ready(function() {
     })
     
 
-     // 이미지 미리보기
-     $("div.signupStep1 input#id_photo").change(function(event) {
+    // 이미지 미리보기
+    $("div.signupStep1 input#id_photo").change(function(event) {
         const file = event.target.files[0];
         if (file) {
             const reader = new FileReader();

@@ -21,8 +21,8 @@ def mypage(request):
     return render(request, "account/mypage.html")
 
 
-def edit_account(request):
-    return render(request, "account/edit_account.html")
+def edit(request):
+    return render(request, "account/edit.html")
 
 
 def steam(request):

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load static %}
+{% block extrahead %}
+{% comment %} <link rel="stylesheet" type="text/css" href="{% static "css/account/signup.css" %}"> {% endcomment %}
+<link rel="stylesheet" type="text/css" href="{% static "css/account/edit.css" %}">
+<script src="{% static 'js/account/edit.js' %}"></script>
+{% endblock %}
+{% block content %}
+<div class="editContainer">
+    <h2>회원 수정</h2>
+    <form action="{% url "accounts:mypage" %}" method="PUT" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="editForm">
+            <div class="user_photo_wrap">
+                <div class="user_photo">
+                    <img id="user_photo" src="{{"/static/images/default_profile.png"}}" alt="사용자 프로필">
+                </div>
+                <label for="id_photo">📸 프로필 사진 올리기</label>
+                <input type="file" name="photo" accept="image/*" id="id_photo">
+            </div>
+            <div>
+                <span>나이</span>
+                <input type="text" name="age" placeholder="나이를 입력해주세요" id="id_age">
+                <p class="error_msg age"></p>
+                <span>닉네임</span>
+                <input type="text" name="nickname" placeholder="닉네임을 입력해주세요" id="id_nickname">
+                <p class="error_msg nickname"></p>
+                <span>이메일</span>
+                <input type="email" name="email" placeholder="이메일을 입력해주세요" id="id_email">
+                <p class="error_msg email"></p>
+            </div>
+            <span class="error_msg"></span>
+            <input type="submit" value="회원 수정">
+        </div>
+    </form>
+</div>
+
+{% endblock content %}

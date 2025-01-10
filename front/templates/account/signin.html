@@ -6,17 +6,16 @@
 {% endblock %}
 {% block content %}
 <div class="signContainer">
-    <div class="signForm signinForm">
-        <h2>로그인</h2>
-        <form action="{% url "accounts:signin" %}" method="POST">
+    <h2>로그인</h2>
+    <form action="{% url "accounts:signin" %}" method="POST">
+        <div class="signForm signinForm">
             {% csrf_token %}
             <input type="text" name="user_id" autofocus="" placeholder="아이디를 입력해주세요" required="" id="id_user_id">
             <input type="password" name="password" autocomplete="current-password" placeholder="비밀번호를 입력해주세요" required="" id="id_password">
             <input type="submit" value="로그인">
             <span class="error_msg"></span>
-
-        </form>
-    </div>
+        </div>
+    </form>
 </div>
 
 {% endblock content %}

@@ -1,7 +1,7 @@
 $(document).ready(function() {
     var csrftoken = $("[name=csrfmiddlewaretoken]").val();
 
-    $("div.signinForm form").submit(function(e) {
+    $("div.signContainer form").submit(function(e) {
         e.preventDefault();
         user_id = $("input[name='user_id']").val()
         password = $("input[name='password']").val()
