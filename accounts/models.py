@@ -119,3 +119,28 @@ class Friend(models.Model):
     friend_id = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+
+class SteamProfile(models.Model):
+    """
+    Account의 steamId를 연동한 스팀 프로필 기본 정보
+    리뷰와 플레이 타임 표시 여부 등을 저장한다
+    """
+    account = models.OneToOneField(Account, on_delete=models.CASCADE)
+    is_review = models.BooleanField(default=False)      # 리뷰 공개 여부
+    is_playtime = models.BooleanField(default=False)    # 플레이 타임 공개 여부
+
+class SteamReview(models.Model):
+    """
+    스팀 리뷰 중에서 'Recommended'가 붙은 상위 3개를 저장할 모델
+    """
+    account = models.ForeignKey(Account, on_delete=models.CASCADE)
+    app_id = models.CharField(max_length=50)   # 게임 앱 아이디
+    # review_text = models.TextField(blank=True)  # 필요 시 리뷰 내용을 저장
+
+class SteamPlaytime(models.Model):
+    """
+    플레이 타임 상위 2개 게임 정보를 저장할 모델
+    """
+    account = models.ForeignKey(Account, on_delete=models.CASCADE)
+    app_id = models.CharField(max_length=50)
