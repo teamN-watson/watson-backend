@@ -51,19 +51,6 @@ class Command(BaseCommand):
                 if review_data:
                     is_review = True  # 한 개라도 있으면 True
 
-                '''
-                # (D) 플레이타임 크롤링 (최대 2개)
-                playtime_data = []
-                if owned_games_public:
-                    playtime_data = self.fetch_top2_playtime(driver, steam_id_str)
-                    if playtime_data:
-                        is_playtime = True
-                else:
-                    # Game details가 비공개라고 생각되지만, 혹시 크롤링으로 볼 수 있나 확인
-                    playtime_data = self.fetch_top2_playtime(driver, steam_id_str)
-                    if playtime_data:
-                        is_playtime = True
-                '''
 
                 # (D) API로 플레이타임 가져오기
                 playtime_data = self.fetch_top2_playtime_api(api_key, steam_id_str)
@@ -125,7 +112,7 @@ class Command(BaseCommand):
         #       ?key=XXXX&vanityurl=커스텀URL
         #       -> response: { "response": { "success": 1, "steamid": "7656119..." } }
         #
-        # 여기서는 단순히 숫자 판별로만 진행.
+        # 여기서는 단순히 숫자 판별로만 진행. 테스트는 아직 못함
         steamid64 = None
         if steam_id_str.isdigit():
             steamid64 = steam_id_str
@@ -220,57 +207,7 @@ class Command(BaseCommand):
     # (D) 플레이 타임 크롤링 (상위 2개) / 최근 플레이 게임을 기준으로 추출하려 했는데
     # 로그인이 필요해서 그냥 API로 가져오도록 함(비공개 여부 파악 힘듬)
     # -------------------------------------------------------
-    '''
-    def fetch_top2_playtime(self, driver, steam_id_str):
-        base_url = "https://steamcommunity.com/"
-        if steam_id_str.isdigit():
-            url = f"{base_url}profiles/{steam_id_str}/games/?tab=all"
-        else:
-            url = f"{base_url}id/{steam_id_str}/games/?tab=all"
 
-        try:
-            driver.get(url)
-            WebDriverWait(driver, 10).until(
-                EC.presence_of_all_elements_located((By.CSS_SELECTOR, "div._2-pQFn1G7dZ7667rrakcU3"))
-            )
-            rows = driver.find_elements(By.CSS_SELECTOR, "div._2-pQFn1G7dZ7667rrakcU3")
-        except:
-            return []
-
-        data = []
-        for row in rows:
-            try:
-                link = row.find_element(By.CSS_SELECTOR, "a._1bAC6eBHy0MpRWrwTkgT9o")
-                href = link.get_attribute("href")
-                if "/app/" in href:
-                    app_id = href.split("/app/")[1].split("/")[0]
-                else:
-                    continue
-
-                # 플레이타임 추출
-                # 예: "총플레이 시간 577.3시간" 형태
-                try:
-                    playtime_elem = row.find_element(By.CSS_SELECTOR, "span._26nl3MClDebGDV7duYjZVn span._2L1rk5AZ6FW8trFciJnHSs")
-                    text = playtime_elem.text  # 예: "총플레이 시간 577.3시간"
-                    
-                    # 정규식으로 숫자만 추출
-                    
-                    match = re.search(r"(\d+(\.\d+)?)", text)  # 숫자 추출
-                    if match:
-                        hours = float(match.group(1))
-                    else:
-                        hours = 0.0
-                except:
-                    hours = 0.0
-
-                data.append({"app_id": app_id, "playtime": hours})
-            except:
-                continue
-
-        # 플레이 타임 내림차순 정렬 후 상위 2개
-        top2 = sorted(data, key=lambda x: x["playtime"], reverse=True)[:2]
-        return top2
-    '''
     def fetch_top2_playtime_api(self, api_key, steam_id_str):
     
         # steam_id_str(64비트 숫자)에 대해 GetOwnedGames API를 호출해,
@@ -320,6 +257,7 @@ class Command(BaseCommand):
 
     # -------------------------------------------------------
     # (E) 커스텀 URL -> 64비트 steamid 변환 (ResolveVanityURL)
+    # 테스트는 아직 못함..
     # -------------------------------------------------------
 
     def resolve_vanity_url(self, api_key, vanity_str):
