@@ -1,18 +1,14 @@
 {% extends "base.html" %}
 {% load static %}
 {% block extrahead %}
-<link rel="stylesheet" type="text/css" href="{% static "css/account/mypage.css" %}">
-<script src="{% static 'js/account/mypage.js' %}"></script>
+<link rel="stylesheet" type="text/css" href="{% static "css/account/profile.css" %}">
+<script src="{% static 'js/account/profile.js' %}"></script>
 {% endblock %}
 {% block content %}
-<div class="mypageContainer">
-    <div class="mypage_wrap" id="wrap1">
+<div class="profileContainer">
+    <div class="profile_wrap" id="wrap1">
         <div class="user_photo"></div>
-        <div class="user_info">
-            <a href="{% url 'front:edit' %}">
-                <button>편집하기</button>
-            </a>
-        </div>
+        <div class="user_info"></div>
         <div>
             <div class="owned_game">
                 <h1>보유 게임</h1>
@@ -21,6 +17,7 @@
                 <h1>최근플레이 게임</h1>
             </div>
         </div>
+        <input type="hidden" name="id" value={{ id }}>
     </div>
 </div>
 
