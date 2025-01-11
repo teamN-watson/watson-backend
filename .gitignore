@@ -138,6 +138,6 @@ letsencrypt/
 **/migrations/*
 !**/migrations/__init__.py
 
-SteamGamesDataset/games.csv
-SteamGamesDataset/games.json
+SteamGamesDataset/*.csv
+SteamGamesDataset/*.json
 
