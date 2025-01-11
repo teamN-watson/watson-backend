@@ -28,4 +28,6 @@ urlpatterns = [
     path("token/", views.token, name="token"),
     path("refresh/", views.refresh, name="refresh"),
     path("interest/", views.interest, name="interest"),
+    path("profile/", views.profile, name="profile"),
+    path("steam_profile/", views.steam_profile, name="steam_profile"),
 ]
