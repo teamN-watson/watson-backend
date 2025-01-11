@@ -1,10 +1,10 @@
-.mypageContainer {
+.profileContainer {
     display: flex;
     flex-direction: column;
     margin-top: 20px;
 }
 
-.mypageContainer .mypage_wrap#wrap1 {
+.profileContainer .profile_wrap#wrap1 {
     display: flex;
     justify-content: flex-start;
     width: 100%;
@@ -12,23 +12,23 @@
     gap: 40px;
     padding: 20px;
 }
-.mypageContainer .mypage_wrap#wrap1 form {
+.profileContainer .profile_wrap#wrap1 form {
     display: flex;
     justify-content: flex-start;
     gap: 40px;
 }
 
-.mypageContainer .user_photo_wrap {
+.profileContainer .user_photo_wrap {
     gap: 20px;
 
 }
-.mypageContainer .user_photo {
+.profileContainer .user_photo {
     width: 200px;
     min-width: 100px;
     height: 200px;
     min-height: 100px;
 }
-.mypageContainer .user_photo img{
+.profileContainer .user_photo img{
     width: 100%;
     height: 100%;
     border: 1px solid black;
@@ -40,43 +40,43 @@ input#id_photo {
     display: none;
 }
 
-.mypageContainer .mypage_wrap .user_info {
+.profileContainer .profile_wrap .user_info {
     display: flex;
     flex-direction: column;
     justify-content: center;
 }
-.mypageContainer .mypage_wrap .user_info .info3 {
+.profileContainer .profile_wrap .user_info .info3 {
     display: flex;
     flex-direction: column;
     gap: 20px;
 
 }
-.mypageContainer .mypage_wrap .user_info .info_wrap {
+.profileContainer .profile_wrap .user_info .info_wrap {
     display: flex;
     margin-bottom: 10px;
     align-items: center;
 }
-.mypageContainer .mypage_wrap .user_info .info_wrap h5{
+.profileContainer .profile_wrap .user_info .info_wrap h5{
     width: 120px;
 }
-.mypageContainer .mypage_wrap .user_info .info_wrap p{
+.profileContainer .profile_wrap .user_info .info_wrap p{
     margin: 0;    
     font-size: 14px;
     text-align: right;
 }
-.mypageContainer .mypage_wrap .user_info input[type='text'] {
+.profileContainer .profile_wrap .user_info input[type='text'] {
     border-radius: 2px;
     border: 1px solid rgb(221, 221, 221);
     padding: 10px;
     width: 250px;
 }
 
-.mypageContainer .edit_wrap#wrap1 {
+.profileContainer .edit_wrap#wrap1 {
     margin-top: 150px;
     justify-content: center !important;
 }
 
-.mypageContainer .edit_wrap .user_photo{
+.profileContainer .edit_wrap .user_photo{
     width: 300px;
     height: 300px;
 }

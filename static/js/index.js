@@ -10,16 +10,23 @@ $(document).ready(function() {
             console.log(data)
             if(data.user_id !== undefined){
                 if(data.photo !== ""){
-                    nav_auth.append(`<div class="user_photo">
-                        <img src="${data.photo}" />
-                    </div>`);
+                    photo = data.photo.split("/").splice(2)
+                    if(photo[0] == "items"){
+                        nav_auth.append(`<div class="user_photo">
+                            <img src="https://cdn.fastly.steamstatic.com/steamcommunity/public/images/${photo.join("/")}" />
+                        </div>`);
+                    } else {
+                        nav_auth.append(`<div class="user_photo">
+                            <img src="${data.photo}" />
+                        </div>`);
+                    }
                 } else {
                     nav_auth.append(`<div class="user_photo">
                         <img src="/static/images/default_profile.png" />
                     </div>`);
                 }
                 nav_auth.append(`<h3>${data.user_id }님</h3>`);
-                nav_auth.append(`<a href="/view/mypage">마이페이지</a>`);
+                nav_auth.append(`<a href="/view/profile/${data.id}">마이페이지</a>`);
                 nav_auth.append(`<input type="button" class="logout" value="로그아웃">`);                
                 $("div.nav_auth input.logout").click(function(e){
                     logout();

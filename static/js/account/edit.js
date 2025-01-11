@@ -7,12 +7,17 @@ function get_user(access_token){
         method: 'GET',
         success: function(response){
             console.log(response)
-            const user = response.data.profile_data
+            const user = response.data.user
             $("input[name='age']").val(user.age)
             $("input[name='nickname']").val(user.nickname)
             $("input[name='email']").val(user.email)
             if(user.photo !== "" && user.photo !== null){
-                $("img#user_photo").attr("src", user.photo)
+                photo = user.photo.split("/").splice(2)
+                if(photo[0] == "items"){
+                    $("img#user_photo").attr("src", "https://cdn.fastly.steamstatic.com/steamcommunity/public/images/"+photo.join("/"))
+                } else {
+                    $("img#user_photo").attr("src", user.photo)
+                }
             }
         },
         error: function(error){
@@ -47,7 +52,7 @@ $(document).ready(function() {
             contentType: false,  // 자동으로 콘텐츠 유형을 설정하지 않게 해야 함
             success: function(data){
                 console.log(data)
-                location.href = "/view/mypage"
+                location.href = "/view/profile/"+data.id
             },
             error: function(data){
                 $(".error_msg").text("")
