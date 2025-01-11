@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Review, ReviewComment, ReviewLike
+from .models import Review, ReviewComment, ReviewLike, ReviewCommentLike
 
 class ReviewCommentSerializer(serializers.ModelSerializer):
     """ReviewComment 모델 직렬화"""
@@ -13,6 +13,17 @@ class ReviewCommentSerializer(serializers.ModelSerializer):
     def get_nickname(self, obj):
         """유저 닉네임 반환 (유저가 없으면 '알수없음')"""
         return obj.user.nickname if obj.user else "알수없음"
+
+
+class ReviewCommentLikeSerializer(serializers.ModelSerializer):
+    """ReviewCommentLike 모델 직렬화"""
+
+    class Meta:
+        model = ReviewCommentLike
+        fields = ['id', 'comment', 'user', 'is_active', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'comment', 'user', 'created_at', 'updated_at']
+
+
 
 
 class ReviewLikeSerializer(serializers.ModelSerializer):
@@ -29,9 +40,6 @@ class ReviewLikeSerializer(serializers.ModelSerializer):
         return obj.user.nickname if obj.user else "알수없음"
 
 
-from rest_framework import serializers
-from .models import Review
-from .serializers import ReviewCommentSerializer
 
 
 class ReviewSerializer(serializers.ModelSerializer):
@@ -44,7 +52,7 @@ class ReviewSerializer(serializers.ModelSerializer):
     class Meta:
         model = Review
         fields = [
-            'id', 'user', 'nickname', 'content', 'app_id', 'score', 
+            'id', 'user', 'nickname', 'content', 'app_id', 'score', 'categories', 
             'created_at', 'updated_at', 'comments', 'total_likes', 'total_dislikes'
         ]
         read_only_fields = [

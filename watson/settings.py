@@ -43,20 +43,23 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    # third party
+    "django_extensions",
     # my app
     "accounts",
     "reviews",
     "chatbot",
+    "front",
     "rest_framework",
     "rest_framework.authtoken",
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
+    "drf_yasg" #swagger_ui add : 이시헌
 ]
 SIMPLE_JWT = {
-    "BLACKLIST_AFTER_ROTATION": True,  # 토큰 회전 후 블랙리스트 처리
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
 }
 
 REST_FRAMEWORK = {

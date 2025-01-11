@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from django.contrib.postgres.fields import ArrayField
 
 class Review(models.Model):
     '''Review 모델 설정'''
@@ -19,6 +20,11 @@ class Review(models.Model):
     blank=True,
     default=None  # 평점은 필수가 아님
     ) # 별점: 0.5 단위(별 반개 단위), 최대 5.0 (별 다섯개)
+    categories = ArrayField(
+    models.CharField(max_length=50),
+    default=list,
+    blank=True
+    ) # 리뷰 카테고리
     view_count = models.PositiveIntegerField(default=0) # 조회수
     created_at = models.DateTimeField(auto_now_add=True)  # 리뷰 생성 시간
     updated_at = models.DateTimeField(auto_now=True)  # 리뷰 수정 시간
@@ -84,8 +90,36 @@ class ReviewLike(models.Model):
     updated_at = models.DateTimeField(auto_now=True)  #  상태 변경 시간
 
     def __str__(self):
-        return f"Review {self.review.id} - Liked by {self.user.nickname if self.user else 'Unknown'} ({'좋아요' if self.is_active else '안좋아요'})"
+        return f"Review {self.review.id} - Liked by {self.user.nickname if self.user else '알수없음'} ({'좋아요' if self.is_active == 1 else '안좋아요' if self.is_active == -1 else '중립'})"
 
     class Meta:
         unique_together = ('user', 'review')  # 유저-리뷰 조합 중복 방지
         ordering = ['-created_at']  # 최신 좋아요 순서대로 정렬
+
+class ReviewCommentLike(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,  # 유저가 삭제되면 좋아요 기록도 삭제
+        related_name="comment_likes"
+    )
+    comment = models.ForeignKey(
+        ReviewComment,
+        on_delete=models.CASCADE,  # 댓글이 삭제되면 좋아요 기록도 삭제
+        related_name="likes_on_comment"
+    )
+    is_active = models.IntegerField(
+        choices=[
+            (1, "좋아요"),
+            (-1, "비추천"),
+            (0, "중립")  # 기본값
+        ],
+        default=0  # 기본 상태는 중립
+    )
+    created_at = models.DateTimeField(auto_now_add=True)  # 생성 시간
+    updated_at = models.DateTimeField(auto_now=True)  # 상태 변경 시간
+
+    def __str__(self):
+        return f"Comment {self.comment.id} - Liked by {self.user.nickname if self.user else '알수없음'} ({'좋아요' if self.is_active == 1 else '안좋아요' if self.is_active == -1 else '중립'})"
+
+    class Meta:
+        unique_together = ('user', 'comment')  # 유저-댓글 조합 중복 방지
