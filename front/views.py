@@ -17,12 +17,12 @@ def signup(request):
     return render(request, "account/signup.html")
 
 
-def mypage(request):
-    return render(request, "account/mypage.html")
-
-
 def edit(request):
     return render(request, "account/edit.html")
+
+
+def profile(request, pk):
+    return render(request, "account/profile.html", context={"id": pk})
 
 
 def steam(request):
