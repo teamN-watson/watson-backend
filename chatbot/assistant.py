@@ -324,20 +324,20 @@ class Assistant():
         # 스팀 연동된 유저인지 확인
         if request.user.steamId:
             # 리뷰 쓴 유저일 때
-            if SteamProfile.objects.filter(user_id=request.user.id, is_review=1).exists(): 
+            if SteamProfile.objects.filter(account_id=request.user.id, is_review=1).exists(): 
                 tag_id = get_interest(request)
                 app_id = SteamReview.objects.filter(
-                    user_id=request.user.id).values_list('app_id', flat=True)
+                    account_id=request.user.id).values_list('app_id', flat=True)
                 for i in app_id:
                     game_tag = self.get_game_tag(i)
                     if game_tag:
                         tag_id.append(game_tag)
             
             # 리뷰 안 썼지만 플레이 타임 정보 있는 유저일 때
-            elif SteamProfile.objects.filter(user_id=request.user.id, is_playtime=1).exists(): 
+            elif SteamProfile.objects.filter(account_id=request.user.id, is_playtime=1).exists(): 
                 tag_id = get_interest(request)
                 app_id = SteamPlaytime.objects.filter(
-                    user_id=request.user.id).values_list('app_id', flat=True)
+                    account_id=request.user.id).values_list('app_id', flat=True)
                 for i in app_id:
                     game_tag = self.get_game_tag(i)
                     if game_tag:
@@ -684,4 +684,4 @@ class Assistant():
                 return self.search_game_info(request, action_output)
 
         except Exception as e:
-            return {"message":"처리 중 오류 발생"}
+            print(f"오류 발생: {e}")
