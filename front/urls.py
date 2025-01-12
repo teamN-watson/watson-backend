@@ -13,6 +13,6 @@ urlpatterns = [
     path("steam/callback/", views.steam_callback, name="steam_callback"),
     
     #reviews
-    path("reviews/",views.reviews_list,name="reviewslist"),
-    path("review_create/",views.review_create,name="reviewcreate"),
+    path("reviews/",views.reviews_list,name="reviews_list"),
+    path("review_create/",views.review_create,name="review_create"),
 ]

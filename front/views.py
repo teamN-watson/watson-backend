@@ -1,11 +1,11 @@
 import re
 from urllib import parse
+from django.contrib.auth.decorators import login_required
+from django.urls import reverse
 from django.shortcuts import redirect, render
-from django.http import JsonResponse
 from accounts.models import Account
-from django.views.decorators.csrf import csrf_exempt
 import requests
-
+from .forms import ReviewForm
 
 def index(request):
     return render(request, "index.html")
@@ -84,31 +84,20 @@ def reviews_list(request):
 
     return render(request, "reviews/reviews_list.html", {"reviews": reviews})
 
+@login_required
 def review_create(request):
-    if request.method == "POST":
-        # Extracting review data from the POST request
-        title = request.POST.get("title")
-        content = request.POST.get("content")
-        rating = request.POST.get("rating")  # Assuming there's a rating field
-        user = request.user  # Get the currently authenticated user
-
-        # Create the review data dictionary
-        review_data = {
-            "title": title,
-            "content": content,
-            "rating": rating,
-            "user": user.id  # Pass the user ID
-        }
-
-        # Send the data to the API to create a review
-        api_url = "http://127.0.0.1:8000/api/reviews/"
-        response = requests.post(api_url, data=review_data)
-
-        if response.status_code == 201:
-            # Redirect to the reviews list page if successful
-            return redirect("front:reviewslist")
+    if request.method == 'GET':
+        # GET 요청 처리: 빈 폼 렌더링
+        form = ReviewForm()
+        return render(request, 'reviews/review_form.html', {'form': form})
+    elif request.method == 'POST':
+        # POST 요청 처리: 폼 데이터 저장
+        form = ReviewForm(request.POST)
+        if form.is_valid():
+            review = form.save(commit=False)
+            review.user = request.user  # 현재 로그인한 사용자 설정
+            review.save()
+            return redirect('reviews:reviews_list')  # 성공 후 목록 페이지로 리다이렉트
         else:
-            # If error, return a message or handle the error appropriately
-            return JsonResponse({"error": "Failed to create review."}, status=400)
-
-    return render(request, "reviews/review_create.html")
+            # 폼이 유효하지 않으면 에러 메시지와 함께 다시 렌더링
+            return render(request, 'reviews/review_form.html', {'form': form})
