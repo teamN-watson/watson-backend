@@ -250,11 +250,13 @@ class AccountUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Account
         fields = [
+            "id",
             "email",
             "age",
             "nickname",
             "photo",
         ]
+        read_only_fields = ["id"]
         extra_kwargs = {
             "email": {"required": True},
             "age": {"required": True},
