@@ -1,8 +1,10 @@
 import re
 from urllib import parse
 from django.shortcuts import redirect, render
-
+from django.http import JsonResponse
 from accounts.models import Account
+from django.views.decorators.csrf import csrf_exempt
+import requests
 
 
 def index(request):
@@ -67,3 +69,46 @@ def steam_callback(request):
 #     )
 #     rv = ujson.load(request.urlopen(url))
 #     return rv["response"]["players"]["player"][0] or {}
+
+
+
+def reviews_list(request):
+    # API에서 리뷰 데이터를 가져오는 요청 (적절한 API URL로 수정 필요)
+    api_url = "http://127.0.0.1:8000/api/reviews/"  # 실제 API 엔드포인트로 수정하세요.
+    response = requests.get(api_url)  # requests.get() 사용
+
+    if response.status_code == 200:
+        reviews = response.json()  # 성공적으로 데이터를 받아오면 JSON 형태로 파싱
+    else:
+        reviews = []  # API 호출 실패 시 빈 리스트로 처리
+
+    return render(request, "reviews/reviews_list.html", {"reviews": reviews})
+
+def review_create(request):
+    if request.method == "POST":
+        # Extracting review data from the POST request
+        title = request.POST.get("title")
+        content = request.POST.get("content")
+        rating = request.POST.get("rating")  # Assuming there's a rating field
+        user = request.user  # Get the currently authenticated user
+
+        # Create the review data dictionary
+        review_data = {
+            "title": title,
+            "content": content,
+            "rating": rating,
+            "user": user.id  # Pass the user ID
+        }
+
+        # Send the data to the API to create a review
+        api_url = "http://127.0.0.1:8000/api/reviews/"
+        response = requests.post(api_url, data=review_data)
+
+        if response.status_code == 201:
+            # Redirect to the reviews list page if successful
+            return redirect("front:reviewslist")
+        else:
+            # If error, return a message or handle the error appropriately
+            return JsonResponse({"error": "Failed to create review."}, status=400)
+
+    return render(request, "reviews/review_create.html")

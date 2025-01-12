@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>리뷰 목록</h1>
+    <a href="{% url 'reviews:review_create' %}">새 리뷰 작성</a>
+    <ul class="reviews-list">
+        {% if reviews %}
+            {% for review in reviews %}
+                <li class="review-item">
+                    <h3><a href="{% url 'reviews:review_detail' review.id %}">{{ review.title }}</a></h3>
+                    <p>{{ review.content }}</p>
+                    <p><strong>좋아요:</strong> {{ review.total_likes }} | <strong>비추천:</strong> {{ review.total_dislikes }}</p>
+                    <p><strong>조회수:</strong> {{ review.view_count }}</p>
+                    <p><strong>작성자:</strong> {{ review.user.username }}</p>
+                    <hr>
+                </li>
+            {% endfor %}
+        {% else %}
+            <p>등록된 리뷰가 없습니다.</p>
+        {% endif %}
+    </ul>
+{% endblock %}
