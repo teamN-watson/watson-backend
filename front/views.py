@@ -87,17 +87,17 @@ def reviews_list(request):
 @login_required
 def review_create(request):
     if request.method == 'GET':
-        # GET 요청 처리: 빈 폼 렌더링
-        form = ReviewForm()
+        app_id = request.GET.get('app_id')  # URL 파라미터에서 app_id 받기
+        form = ReviewForm(initial={'app_id': app_id})  # 폼에 초기값 설정
         return render(request, 'reviews/review_form.html', {'form': form})
     elif request.method == 'POST':
-        # POST 요청 처리: 폼 데이터 저장
         form = ReviewForm(request.POST)
         if form.is_valid():
             review = form.save(commit=False)
             review.user = request.user  # 현재 로그인한 사용자 설정
             review.save()
-            return redirect('reviews:reviews_list')  # 성공 후 목록 페이지로 리다이렉트
+            return redirect('front:reviews_list')  # 성공 후 목록 페이지로 리다이렉트
         else:
             # 폼이 유효하지 않으면 에러 메시지와 함께 다시 렌더링
             return render(request, 'reviews/review_form.html', {'form': form})
+

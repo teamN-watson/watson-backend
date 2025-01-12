@@ -62,7 +62,8 @@ SIMPLE_JWT = {
     "BLACKLIST_AFTER_ROTATION": True,
 }
 
-LOGIN_URL = '/view/signin/'  # 사용자가 정의한 로그인 URL
+LOGIN_URL = 'front:signin'  # 로그인 URL을 front 앱의 signin으로 설정
+
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
