@@ -231,7 +231,7 @@ class Assistant():
             ]
 
             # LLM 호출
-            response = self.llm.predict_messages(messages=messages)
+            response = self.llm.invoke(messages)
             return response.content
             
         input_tag = input_tag(self, query)
@@ -317,7 +317,7 @@ class Assistant():
             ]
 
             # LLM 호출
-            response = self.llm.predict_messages(messages=messages)
+            response = self.llm.invoke(messages)
 
             return response.content
         
@@ -434,7 +434,7 @@ class Assistant():
         ]
 
         # LLM 호출
-        response = self.llm.predict_messages(messages=messages)
+        response = self.llm.invoke(messages)
 
         return response.content
 
@@ -509,7 +509,7 @@ class Assistant():
         ]
 
         # LLM 호출
-        response = self.llm.predict_messages(messages=messages)
+        response = self.llm.invoke(messages)
 
         return response.content
 
@@ -641,7 +641,7 @@ class Assistant():
                 if not any(tag in json.loads(tagid) for tag in self.restrict_id):
                     return link.get('data-ds-appid')
                 else:
-                    return self.config.not_find_message
+                    return self.config.restrict_message
             else:
                 return link.get('data-ds-appid')
 
@@ -684,4 +684,4 @@ class Assistant():
                 return self.search_game_info(request, action_output)
 
         except Exception as e:
-            print(f"오류 발생: {e}")
+            return {"message":self.config.not_result_message}

@@ -7,12 +7,11 @@ class Conversation(models.Model):
     '''
     유저의 대화방 번호 저장
     '''
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    account = models.ForeignKey(User, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
-    is_adult = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"Conversation #{self.id} - {self.user}"
+        return f"Conversation #{self.id} - {self.account}"
 
 
 class Message(models.Model):

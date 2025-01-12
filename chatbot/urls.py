@@ -4,8 +4,10 @@ from chatbot import views
 app_name = "chatbot"
 
 urlpatterns = [
-    # 챗봇 응답 요청 및 대화 내역 조회
+    # 챗봇 응답 요청 및 초기화
     path("", views.ChatbotAPIView.as_view(), name="chatbot"),
-    # 테스트 용 -> 챗봇 마무리 되면 삭제해야 함
-    path("test/", views.search_category)
+    # 대화 내역 로드
+    path("record/", views.ChatbotRecordAPIView.as_view(), name="chatbot_record"),
+    # 대화 메시지 삭제
+    path("<int:messageid>/", views.DeleteChatbotRecordAPIView.as_view(), name="delete_record")
 ]

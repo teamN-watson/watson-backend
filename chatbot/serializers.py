@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from chatbot.models import Conversation, Message, Steam, Review, Playtime
+from chatbot.models import Conversation, Message
 
 
 class MessageSerializer(serializers.ModelSerializer):
@@ -16,9 +16,7 @@ class ConversationSerializer(serializers.ModelSerializer):
     """
     챗봇 대화방 정보 직렬화
     """
-    messages = MessageSerializer(many=True, read_only=True)
-
     class Meta:
         model = Conversation
-        fields = ['id', 'user', 'created_at', 'messages']
+        fields = ['id', 'account', 'created_at', 'messages']
         read_only_fields = ['id', 'created_at', 'messages']
