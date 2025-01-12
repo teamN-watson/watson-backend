@@ -138,3 +138,5 @@ SteamGamesDataset/*.csv
 SteamGamesDataset/*.json
 
 migrations
+
+.env
