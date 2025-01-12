@@ -27,12 +27,17 @@ class ReviewAPIView(APIView):
     def get(self, request):
         """리뷰 목록 조회"""
         sort_by = request.query_params.get('sort_by', 'recent')  # 기본 정렬 기준: 최신순
+        category = request.query_params.get('category', None)  # 카테고리 필터링 추가
 
-        # annotate로 좋아요 및 비추천 수 계산 / 'related_name="likes"로 연결된 ReviewLike 모델의 is_active 필드 값이 1인 경우 추천, -1인 경우 비추천'
+        # annotate로 필드 추가 / 'related_name="likes"로 연결된 ReviewLike 모델의 is_active 필드 값이 1인 경우 추천, -1인 경우 비추천'
         reviews = Review.objects.annotate(
             total_likes=Count('likes', filter=Q(likes__is_active=1)),
             total_dislikes=Count('likes', filter=Q(likes__is_active=-1))
         )
+
+        # 카테고리 필터링 적용
+        if category:
+            reviews = reviews.filter(categories__contains=[category])
 
         # 정렬 기준 적용
         if sort_by == 'popular':  # 인기순
