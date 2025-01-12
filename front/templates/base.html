@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Watson</title>
+        {% load static %}
+        <link rel="shortcut icon" href="{% static 'images/favicon.ico' %}">
+        <link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}">
+        <link rel="stylesheet" type="text/css" href="{% static 'css/navbar.css' %}">
+        <script src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
+        <script src="{% static 'js/index.js' %}"></script>
+        {% block extrahead %}{% endblock %}
+
+    </head>
+    <body>
+        <header>
+            <nav class="navbar">
+                <div class="container">
+                    <div>
+                        <a href="/" class="logo">
+                            Watson
+                        </a>
+                    </div>
+                    <div>
+                        <ul class="menu">
+                            <li><a href="/view/reviews/">리뷰</a></li>
+                            <li><a href="/search">게임</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <div class="nav_auth">
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </header>
+        <main>
+            <div class="container">
+                {% block content %}
+                {% endblock content %}
+            </div>
+        </main>
+
+        <div class="loading">
+            <div>
+                <img src="/static/images/loading.gif" />
+                <h2>Loading...</h2>
+            </div>
+        </div>
+
+    </body>
+</html>

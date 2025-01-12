@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% load static %}
+{% block extrahead %}
+<link rel="stylesheet" type="text/css" href="{% static "css/account/signup.css" %}">
+<script src="{% static 'js/account/signup.js' %}"></script>
+{% endblock %}
+{% block content %}
+<div class="signContainer">
+    <h2>회원 가입</h2>
+    <form action="{% url "accounts:signup" %}" method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="signupStepForm step1">
+            <div class="signupStep1">
+                <div class="user_photo_wrap">
+                    <div class="user_photo">
+                        <img id="user_photo" src="{{"/static/images/default_profile.png"}}" alt="사용자 프로필">
+                    </div>
+                    <label for="id_photo">📸 프로필 사진 올리기</label>
+                    <input type="file" name="photo" accept="image/*" id="id_photo">
+                </div>
+                <div>
+                    <input type="text" name="user_id" autofocus="" placeholder="아이디를 입력해주세요" id="id_user_id">
+                    <p class="error_msg user_id"></p>
+                    <input type="password" name="password" autocomplete="current-password" placeholder="비밀번호를 입력해주세요" id="id_password">
+                    <p class="error_msg password"></p>
+                    <input type="password" name="confirm_password" autocomplete="current-password" placeholder="비밀번호를 한번더 입력해주세요" id="id_confirm_password">
+                    <p class="error_msg confirm_password"></p>
+                </div>
+                <span class="error_msg"></span>
+                <input type="button" name="next" value="다음"> 
+            </div>
+            <div class="signupStep2">
+                <div>
+                    <input type="text" name="age" placeholder="나이를 입력해주세요" id="id_age">
+                    <p class="error_msg age"></p>
+                    <input type="text" name="nickname" placeholder="닉네임을 입력해주세요" id="id_nickname">
+                    <p class="error_msg nickname"></p>
+                    <input type="email" name="email" placeholder="이메일을 입력해주세요" id="id_email">
+                    <p class="error_msg email"></p>
+                </div>
+                <span class="error_msg"></span>
+                <input type="button" name="prev" value="이전"> 
+                <input type="button" name="next" value="다음"> 
+            </div>
+            <div class="signupStep3">
+                <div class="interest_list"></div>
+                <input type="button" name="prev" value="이전"> 
+                <input type="submit" value="회원 가입">
+            </div>
+            <input type="hidden" value="1" name="step">
+        </div>
+    </form>
+</div>
+
+{% endblock content %}
