@@ -6,6 +6,7 @@ from chatbot.models import Conversation, Message
 from chatbot.serializers import MessageSerializer
 from chatbot.assistant import Assistant
 from django.shortcuts import get_object_or_404
+from rest_framework.permissions import IsAuthenticated
 
 class ChatbotRecordAPIView(APIView):
     """
@@ -15,6 +16,10 @@ class ChatbotRecordAPIView(APIView):
         """
         대화방 기록 가져오기, 대화방 기록이 없을 땐 새로 만듦
         """
+        # 로그인된 사용자만 접근 가능하도록 설정
+        permission_classes = [IsAuthenticated]
+
+
         # 1) Conversation 객체 가져오기 (account_id가 request.user.id인 경우)
         conversation = Conversation.objects.filter(account_id=request.user.id).first()
 
@@ -46,6 +51,10 @@ class ChatbotAPIView(APIView):
     """
     챗봇 관련 클래스 (입력, 초기화)
     """
+    # 로그인된 사용자만 접근 가능하도록 설정
+    permission_classes = [IsAuthenticated]
+
+
     def post(self, request):
         """
         챗봇 응답 요청 및 대화 내역 저장
@@ -113,6 +122,10 @@ class DeleteChatbotRecordAPIView(APIView):
     """
     챗봇 대화 중 특정 메시지 삭제하는 API
     """
+    # 로그인된 사용자만 접근 가능하도록 설정
+    permission_classes = [IsAuthenticated]
+
+
     def delete(self, request, messageid):
 
         message = get_object_or_404(Message, pk=messageid)
