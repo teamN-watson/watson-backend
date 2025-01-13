@@ -413,6 +413,9 @@ class Assistant():
             # 수집된 결과 3개 채워졌으면 반복문 탈출
             if count == 3:
                 break
+
+        if not app_ids:
+            return self.config.not_result_message
         return app_ids
     
 
