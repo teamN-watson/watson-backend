@@ -84,8 +84,8 @@ $(document).ready(function() {
                 //     $("input[name='steam_profile']").click(steam_profile_action);
                 // }
                 const owned_games = response.data.owned_games;
+                const div_owned_games = $("div.owned_game")
                 if(owned_games !== undefined && response.data.owned_games.game_count){
-                    const div_owned_games = $("div.owned_game")
                     for (let i = 0; i < owned_games["games"].length; i++) {
                         const game = owned_games["games"][i]
                         const date = new Date(game.rtime_last_played * 1000); 

@@ -3,12 +3,20 @@ function prev_action(){
     $("div.signupStepForm").removeClass("step"+step);
     $("div.signupStepForm").addClass("step"+(step-1));
     $("input[name='step']").val(step-1)
+    $(".signupStep" + (step-1) + " .user_input input").first().attr("tabindex", -1).focus()    
 }
 function next_action(){
     const step = $("input[name='step']").val()*1
+    if(step == 2){
+        const nickname = $("input[name='nickname']").val()
+        $(".signupStep3 h2").text(nickname + " 님, 좋아하는 게임을 3개 이상 선택해주세요")
+    }
     $("div.signupStepForm").removeClass("step"+step);
     $("div.signupStepForm").addClass("step"+(step+1));
     $("input[name='step']").val(step+1)
+    if(step == 1){
+        $(".signupStep2 .user_input input").first().attr("tabindex", -1).focus()
+    }
 }
 function error_action(error){
     $(".error_msg").text("")
@@ -17,10 +25,10 @@ function error_action(error){
         for (let i = 0; i < keys.length; i++) {
             var key = keys[i]
             console.log(key)
-            $("p.error_msg."+key).text(error.responseJSON[keys[i]][0])   
+            $("p.error_msg."+key).text("* "+error.responseJSON[keys[i]][0])   
         }
     } else {
-        $("span.error_msg").text(error.responseJSON.message)
+        $("span.error_msg").text("* "+error.responseJSON.message)
     }
 }
 // 회원가입시 로딩화면 필요 > 오래걸림
@@ -85,21 +93,18 @@ $(document).ready(function() {
     $("div.signContainer form").submit(function(e) {
         e.preventDefault();
         const step = $("input[name='step']").val()
-        if(step == 1){
-            $("div.signupStepForm").removeClass('step1');
-            $("div.signupStepForm").addClass('step2');
-            $("input[name='step']").val(2)
-            return;
-        } else if(step == 2){
-            $("div.signupStepForm").removeClass('step3');
-            $("div.signupStepForm").removeClass('step1');
-            $("div.signupStepForm").addClass('step2');
-            $("input[name='step']").val(2)
+        if(step != 3){
+            // next_action()
+            $(".signupStep"+step + " input[name='next']").click()
             return;
         }
         const select_id = $(".interest_img.selected").map(function () {
             return $(".interest_img").index(this);
         }).get();
+        if(!select_id.length){
+            $(".signupStep3 .error_msg").text("* 게임을 3개 이상 선택해주세요")
+            return;
+        }
         var formData = new FormData();
         formData.append("user_id", $("input[name='user_id']").val());
         formData.append("password", $("input[name='password']").val());
@@ -165,12 +170,15 @@ $(document).ready(function() {
                     <div class="interest_info">
                         <div class="interest_img">
                             <img src="/static/images/games/${interest.id}.jpg">
-                        </div>
+                            </div>
+                            <div class="interest_hover">
+                                <img src="/static/images/like.png">
+                            </div>
                     </div>`)
             }
 
-            $("div.interest_info img").click(function(e){
-                var parent = $(this).parent()
+            $("div.interest_hover").click(function(e){
+                var parent = $(this).parent().children(".interest_img")
 
                 if ($(parent).hasClass('selected')) {
                     $(parent).removeClass('selected'); // 선택 해제
