@@ -365,18 +365,38 @@ def steam_profile(request):
             api_key = env("STEAM_API_KEY")
             params = {"key": api_key, "steamid": user.steamId}
 
-            # 한글 결과를 위한 파라미터 추가
             response = requests.get(api_url, params=params)
 
+            response_data = response.json()["response"]
+            print("test", response.status_code == 200 and response_data["avatar"] != {})
             # 요청 성공 여부 확인
-            if response.status_code == 200:
-                response_data = response.json()["response"]
+            if response.status_code == 200 and response_data["avatar"] != {}:
                 data["animated_avatar"] = response_data
                 if response_data["avatar"] != None and response_data["avatar"] != "":
                     user.photo = response_data["avatar"]["image_small"]
                     user.save()
+            else:
+                api_url = (
+                    "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/"
+                )
+                params = {"key": api_key, "steamids": user.steamId}
+
+                response = requests.get(api_url, params=params)
+
+                # 요청 성공 여부 확인
+                response_data = response.json()["response"]
+                print(response_data, response.status_code)
+                if response.status_code == 200:
+                    if (
+                        response_data["players"]
+                        and response_data["players"][0]
+                        and response_data["players"][0]["avatarfull"]
+                    ):
+                        user.photo = response_data["players"][0]["avatarfull"]
+                        user.save()
 
         except requests.exceptions.RequestException as e:
+            print(e)
             return Response({"message": "Invalid request."}, status=400)
 
         return JsonResponse(
