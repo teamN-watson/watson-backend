@@ -657,8 +657,9 @@ class Assistant():
         
         # 게임 설명 요약 정보
         game_info = {"message": "검색하신 게임에 대한 정보입니다. 😸", "game_data": []}
-        game_info["game_data"].update(self.get_game_info(game_id))
-        game_info["game_data"].update(self.get_game_review_summary(game_id))
+        game_data = self.get_game_info(game_id)
+        game_data.update(self.get_game_review_summary(game_id))
+        game_info["game_data"].append(game_data)
 
         return game_info
 
