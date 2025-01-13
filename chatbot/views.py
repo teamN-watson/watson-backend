@@ -14,7 +14,24 @@ class ChatbotRecordAPIView(APIView):
     """
     # 로그인된 사용자만 접근 가능하도록 설정
     permission_classes = [IsAuthenticated]
-    
+
+    def get(self, request):
+        """
+        단순 대화방 기록 가져오기
+        """
+        # 1) Conversation 객체 가져오기 (account_id가 request.user.id인 경우)
+        conversation = Conversation.objects.filter(
+            account_id=request.user.id).first()
+        
+        if not conversation:
+            return Response({"message": "생성된 채팅방이 없습니다."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        messages = Message.objects.filter(conversation=conversation).order_by('created_at')
+        serializer = MessageSerializer(messages, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+        
+
+
     def post(self, request):
         """
         대화방 기록 가져오기, 대화방 기록이 없을 땐 새로 만듦
