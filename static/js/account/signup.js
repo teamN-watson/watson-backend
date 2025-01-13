@@ -109,7 +109,9 @@ $(document).ready(function() {
         formData.append("email", $("input[name='email']").val());
         formData.append("step", $("input[name='step']").val());
         formData.append("select_id", select_id.join(", "));
-        formData.append("photo", $("#id_photo")[0].files[0]);  // 이미지 파일 추가
+        if($("#id_photo")[0].files.length){
+            formData.append("photo", $("#id_photo")[0].files[0]);  // 이미지 파일 추가
+        }
 
         $.ajax({
             url: "/api/account/signup/",
