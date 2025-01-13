@@ -12,14 +12,13 @@ class ChatbotRecordAPIView(APIView):
     """
     챗봇 대화방 내역 가져오는 API
     """
+    # 로그인된 사용자만 접근 가능하도록 설정
+    permission_classes = [IsAuthenticated]
+    
     def post(self, request):
         """
         대화방 기록 가져오기, 대화방 기록이 없을 땐 새로 만듦
         """
-        # 로그인된 사용자만 접근 가능하도록 설정
-        permission_classes = [IsAuthenticated]
-
-
         # 1) Conversation 객체 가져오기 (account_id가 request.user.id인 경우)
         conversation = Conversation.objects.filter(account_id=request.user.id).first()
 
