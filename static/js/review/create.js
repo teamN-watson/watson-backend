@@ -9,7 +9,6 @@ $(document).ready(function() {
             },
             method: 'POST',
             data: {
-                "title": $("input[name='title']").val(),
                 "content": $("textarea[name='content']").val(),
                 "app_id": $("input[name='app_id']").val(),
                 "score": $("input[name='score']").val(),
