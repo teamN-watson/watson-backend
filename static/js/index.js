@@ -15,6 +15,10 @@ $(document).ready(function() {
                         nav_auth.append(`<div class="user_photo">
                             <img src="https://cdn.fastly.steamstatic.com/steamcommunity/public/images/${photo.join("/")}" />
                         </div>`);
+                    }else if(photo[0] == "https%3A"){
+                        nav_auth.append(`<div class="user_photo">
+                            <img src="${photo.join("/").replace("%3A",":")}" />
+                        </div>`);
                     } else {
                         nav_auth.append(`<div class="user_photo">
                             <img src="${data.photo}" />
@@ -94,7 +98,9 @@ $(document).ready(function() {
     
                 // 4. 원래 요청 다시 시도
                 options.headers.Authorization = `Bearer ${newAccessToken}`;
-                response = await fetch(url, options);
+                // response = await fetch(url, options);
+                // 4 토큰이 필요한 요청이 여러개 인경우 최초 요청떄 재발급되고 나머지는 재발급하기 애매함
+                location.reload();
             } else {
                 console.log(refreshResponse.status)
                 console.error("Refresh 토큰이 만료되었습니다.");

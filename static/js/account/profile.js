@@ -42,6 +42,8 @@ $(document).ready(function() {
                     photo = profile.photo.split("/").splice(2)
                     if(photo[0] == "items"){
                         user_photo.append(`<img src="https://cdn.fastly.steamstatic.com/steamcommunity/public/images/${photo.join("/")}" />`)
+                    } else if(photo[0] == "https%3A"){
+                        user_photo.append(`<img src="${photo.join("/").replace("%3A",":")}" />`)
                     } else {
                         user_photo.append(`<img src="${profile.photo}" />`)
                     }
@@ -82,7 +84,7 @@ $(document).ready(function() {
                 //     $("input[name='steam_profile']").click(steam_profile_action);
                 // }
                 const owned_games = response.data.owned_games;
-                if(owned_games !== undefined){
+                if(owned_games !== undefined && response.data.owned_games.game_count){
                     const div_owned_games = $("div.owned_game")
                     for (let i = 0; i < owned_games["games"].length; i++) {
                         const game = owned_games["games"][i]
@@ -98,11 +100,13 @@ $(document).ready(function() {
                             <span>최근 플레이${formattedDate}</span>
                             </div>`)                
                     }
+                } else {
+                    div_recent_games.append(`<div>보유한 게임이 없습니다.</div>`)
                 }
                 
                 const recent_games = response.data.recent_games;
                 const div_recent_games = $("div.recent_game")
-                if(recent_games !== undefined){
+                if(recent_games !== undefined && response.data.recent_games.total_count){
                     for (let i = 0; i < recent_games["games"].length; i++) {
                         const game = recent_games["games"][i]
 
@@ -113,6 +117,8 @@ $(document).ready(function() {
                             <span>지난 2주간 플레이타임${(game.playtime_2weeks/60).toFixed(1)}시간</span>
                             </div>`)                
                     }
+                } else {
+                    div_recent_games.append(`<div>최근 플레이 한 게임이 없습니다.</div>`)
                 }
 
                 
