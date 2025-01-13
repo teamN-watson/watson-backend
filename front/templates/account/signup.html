@@ -18,7 +18,7 @@
                     <label for="id_photo">📸 프로필 사진 올리기</label>
                     <input type="file" name="photo" accept="image/*" id="id_photo">
                 </div>
-                <div>
+                <div class="user_input">
                     <input type="text" name="user_id" autofocus="" placeholder="아이디를 입력해주세요" id="id_user_id">
                     <p class="error_msg user_id"></p>
                     <input type="password" name="password" autocomplete="current-password" placeholder="비밀번호를 입력해주세요" id="id_password">
@@ -26,11 +26,12 @@
                     <input type="password" name="confirm_password" autocomplete="current-password" placeholder="비밀번호를 한번더 입력해주세요" id="id_confirm_password">
                     <p class="error_msg confirm_password"></p>
                 </div>
-                <span class="error_msg"></span>
-                <input type="button" name="next" value="다음"> 
+                <div class="step_action">
+                    <input type="button" name="next" value="다음"> 
+                </div>
             </div>
             <div class="signupStep2">
-                <div>
+                <div class="user_input">
                     <input type="text" name="age" placeholder="나이를 입력해주세요" id="id_age">
                     <p class="error_msg age"></p>
                     <input type="text" name="nickname" placeholder="닉네임을 입력해주세요" id="id_nickname">
@@ -38,14 +39,24 @@
                     <input type="email" name="email" placeholder="이메일을 입력해주세요" id="id_email">
                     <p class="error_msg email"></p>
                 </div>
-                <span class="error_msg"></span>
-                <input type="button" name="prev" value="이전"> 
-                <input type="button" name="next" value="다음"> 
+                <div class="step_action">
+                    <input type="button" name="prev" value="이전"> 
+                    <input type="button" name="next" value="다음"> 
+                </div>
             </div>
             <div class="signupStep3">
-                <div class="interest_list"></div>
-                <input type="button" name="prev" value="이전"> 
-                <input type="submit" value="회원 가입">
+                <div class="user_interest">
+                    <div class="interst_txt">
+                        <h2>님, 좋아하는 게임을 3개 이상 선택해주세요.</h2>
+                        <span>취향에 꼭 맞는 게임을 찾아드리는 데 도움이 됩니다. 마음에 드는 콘텐츠를 선택하세요.</span>
+                    </div>
+                    <div class="interest_list"></div>
+                </div>
+                <span class="error_msg"></span>
+                <div class="step_action">
+                    <input type="button" name="prev" value="이전"> 
+                    <input type="submit" value="회원 가입">
+                </div>
             </div>
             <input type="hidden" value="1" name="step">
         </div>
