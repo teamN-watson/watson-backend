@@ -53,7 +53,7 @@ def steam_callback(request):
         account = Account.objects.get(user_id=user_id)
         account.steamId = steam_id
         account.save()
-    return redirect("front:mypage")
+    return redirect("front:profile", pk=account.id)
 
 
 # def get_steam_user_info(steam_id):
