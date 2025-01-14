@@ -15,7 +15,6 @@ function get_review(){
                     let year = objectDate.getFullYear();
     
                     var title = "Zomboid";
-                    var categories = ["생존", "좀비", "멀티 플레이어"]
                     list_wrap.append(`
                         <div class="game_row">
                             <div class="game_title">
@@ -33,7 +32,7 @@ function get_review(){
                             </div>
                         </div>`);
                     const game_row = $("div.listWrap .game_row:last div.categories")
-                    categories.forEach(category => {
+                    el.categories.forEach(category => {
                         game_row.append(`<span class="category">${category}</span>`);
                     });
                 }
