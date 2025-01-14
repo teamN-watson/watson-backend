@@ -48,6 +48,7 @@ class ReviewSerializer(serializers.ModelSerializer):
     comments = ReviewCommentSerializer(many=True, read_only=True)  # 연결된 댓글들
     total_likes = serializers.IntegerField(read_only=True)  # annotate로 계산된 값
     total_dislikes = serializers.IntegerField(read_only=True)  # annotate로 계산된 값
+    game_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Review
