@@ -32,11 +32,18 @@ class Review(models.Model):
     updated_at = models.DateTimeField(auto_now=True)  # 리뷰 수정 시간
 
     def save(self, *args, **kwargs):
-        """저장 시 categories 필드 자동 채우기"""
-        if not self.categories:
+        """저장 시 app_id가 변경되면 categories 업데이트"""
+        # 기존 app_id 확인
+        original_app_id = None
+        if self.pk:  # 기존에 저장된 객체라면
+            original_app_id = Review.objects.get(pk=self.pk).app_id
+
+        # app_id가 변경된 경우
+        if original_app_id != self.app_id:
             game = Game.objects.filter(appID=self.app_id).first()
             if game:
-                self.categories = game.genres  # Game의 genres를 저장
+                self.categories = game.genres  # 새로운 app_id에 따른 categories 업데이트
+
         super().save(*args, **kwargs)
 
     @property
