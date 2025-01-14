@@ -45,6 +45,13 @@ $(document).ready(function() {
         });
 
     } else {
+        const pathname = location.pathname;
+        const login_path = ['/view/chatbot/', '/view/review_create/']
+        if(login_path.filter( p => p == pathname).length){
+            location.href="/view/signin"
+        }
+
+
         nav_auth.append(`<a href="/view/signin">로그인</a>`);
         nav_auth.append(`<a href="/view/signup">회원가입</a>`);       
     }
