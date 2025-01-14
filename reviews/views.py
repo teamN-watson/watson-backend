@@ -212,3 +212,25 @@ class ReviewCommentLikeAPIView(APIView):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+class ReviewSearchAPIView(APIView):
+    """
+    리뷰 검색 API
+    """
+    def get(self, request):
+        """리뷰 검색"""
+        keyword = request.query_params.get('keyword', '').strip()
+        if not keyword:
+            return Response({"detail": "검색어를 입력해주세요."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 검색 조건: 리뷰 내용, 카테고리, 게임 이름
+        reviews = Review.objects.filter(
+            Q(content__icontains=keyword) |
+            Q(categories__icontains=keyword) |
+            Q(game_name__icontains=keyword)  # 게임 이름 검색 추가
+        ).distinct()
+
+        if not reviews.exists():
+            return Response({"detail": "검색 결과가 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = ReviewSerializer(reviews, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)

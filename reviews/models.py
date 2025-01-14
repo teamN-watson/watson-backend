@@ -36,7 +36,7 @@ class Review(models.Model):
         else:
             nickname = "알수없음"
 
-        return f"Review 작성자 : {nickname} - 스팀 게임 번호 : {self.app_id} 평점 : ({self.score})"
+        return f"Review 작성자 : {nickname} - 스팀 게임 번호 : {self.app_id} - 게임 이름 : {self.game_name} - 평점 : ({self.score})"
 
 
 
