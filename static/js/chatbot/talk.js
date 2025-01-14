@@ -58,9 +58,11 @@ $(document).ready(function() {
                 htmlContent += `<div class="user">`;
                 htmlContent += `<p>${user_message.message}</p>`;
                 htmlContent += `</div>`;
+                
                 const bot_message = data.bot_message;
+                htmlContent += `<div class="ai">`;
+                htmlContent += `<p>${bot_message.message}</p>`;
                 if (bot_message.game_data) {
-                    htmlContent += `<p>${bot_message.message}</p>`;
                     const game_datas = bot_message.game_data
                     for (let j = 0; j < game_datas.length; j++) {
                         const game_data = game_datas[j]
@@ -73,6 +75,18 @@ $(document).ready(function() {
             },
             error: function(error){
                 console.log(error)
+                const record = $("div.chatbot_record")
+
+                let htmlContent = ``;
+                const user_message = error.user_message;
+                htmlContent += `<div class="user">`;
+                htmlContent += `<p>${user_message.message}</p>`;
+                htmlContent += `</div>`;
+                const bot_message = error.bot_message;
+                htmlContent += `<div class="ai">`;
+                htmlContent += `<p>${bot_message.message}</p>`;
+                htmlContent += `</div>`;
+                record.append(htmlContent);
             },
             complete: function() {
                 setTimeout(() => {
