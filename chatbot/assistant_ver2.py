@@ -38,6 +38,7 @@ class AssistantConfig:
     not_result_message: str = "죄송합니다. 입력하신 정보와 관련된 게임을 찾을 수 없습니다. 😿"
     not_find_message: str = "죄송합니다. 정확한 검색을 위해 게임 제목을 영어로 입력해주세요. 😿"
     not_review_message: str = "리뷰가 없습니다. 😿"
+    not_description_message: str = "설명이 없습니다. 😿"
 
 
 class AgentAction(BaseModel):
@@ -285,8 +286,12 @@ class Assistant():
             """
             # 프롬프트 설정
             similar_prompt = """
-            당신은 게임 태그 분석 도우미입니다. 사용자 입력과 사용자 관심사 태그를 바탕으로, 
-            사용자 입력에 연관성이 높거나 분위기가 비슷한 게임 내 비장르적 특징 태그(steam_tag_id)를 추론합니다.
+            당신은 게임 태그 분석 도우미입니다.
+            주어지는 입력 중 "사용자 입력"은 사용자가 원하는 장르, "관심사 태그"는 사용자가 평소에 좋아하던 게임에 대한 특징을 의미하는 태그 정보입니다.
+            "관심사 태그"는 게임 별로 여러 그룹으로 나뉘어있는 정보입니다. 
+            주어진 사용자 입력과 사용자 관심사 태그를 바탕으로, 여러 그룹 중 사용자가 원하는 장르와 연관이 있는 게임이 있는지 먼저 찾습니다.
+            연관이 있는 게임을 먼저 찾은 뒤, 사용자 입력을 고려하여 앞서 찾은 연관된 게임의 비장르적 특징 (ex, 분위기 있는, 다채로운, 귀여운 등)을 최대 3개 추출합니다.
+            만일 연관된 게임이 전혀 없었다면 사용자 입력에 연관성이 높거나 분위기가 비슷한 게임 내 비장르적 특징 태그(steam_tag_id)를 추론합니다.
             추론할 특징 태그는 반드시 주어진 관심사 태그 안에 있는 태그로 추론합니다.
 
             주어진 정보:
@@ -295,12 +300,12 @@ class Assistant():
             - 각 태그는 게임의 특정 특징이나 분위기를 나타냅니다.
 
             작업 지침:
-            1. 주어진 사용자 입력과 관심사 태그의 의미를 해석합니다.
-            2. 사용자 입력과 유사한 분위기를 가지고 있는 게임 내 특징(장르 제외)을 생각해 봅니다.
-            3. 주어진 관심사 태그 데이터 내에서 해당되는 steam_tag_id를 최대 3개까지 선택합니다.
-            4. 선택된 태그들은 실제로 함께 쓰일 가능성이 높은, 논리적이고 의미 있는 연관성을 가져야 합니다.
-            5. 연관있는 태그가 없을 시 아무런 결과도 반환하지 않아도 됨
-            6. 반드시 주어진 관심사 태그에 있는 태그로 추출해야 합니다.
+            - 주어진 사용자 입력과 관심사 태그의 의미를 해석합니다.
+            - 선택된 태그들은 실제로 함께 쓰일 가능성이 높은, 논리적이고 의미 있는 연관성을 가져야 합니다.
+            - 연관있는 태그가 없을 시 아무런 결과도 반환하지 않아도 됨
+            - 반드시 주어진 관심사 태그에 있는 태그로 추출해야 합니다.
+            - "인디", "캐주얼"은 직접적인 언급이 있지 않은 이상 포함하지 마시오.
+            - 게임과 일반적으로 연관있는 태그들은 사용자가 직접적으로 언급하지 않는 이상 포함하지 마시오. (예. 게임-이스포츠)
 
             제한 사항:
             - 게임 장르 태그(MOBA, RPG, 스포츠, 액션 등)는 제외합니다.
@@ -357,6 +362,8 @@ class Assistant():
         
         # 관심사 태그와 사용자 입력과 연관지을 수 있는 태그 추출
         found_tag = find_similar_tags(self, query, tags)
+        print(found_tag)
+        print(input_tag)
         if found_tag:
             found_tag_list = json.loads(found_tag)
             return list(set(input_tag + found_tag_list))
@@ -417,35 +424,12 @@ class Assistant():
         if not app_ids:
             return self.config.not_result_message
         return app_ids
-    
 
-    def inform_summary(self, short_inform, long_inform):
-        """
-        게임 설명에 대한 요약 AI 모델
-        """
-        prompt = """
-        당신은 유저에게 게임에 대한 설명을 이해하기 쉽고 깔끔하게 요약하는 도우미입니다.
-        주어지는 입력 중 "핵심 설명"은 게임에 대한 핵심적인 설명이고, "상세 설명"은 보다 자세한 게임에 대한 설명(플레이 방법, 스토리 등)입니다.
-        이 내용들을 기반으로 유저에게 이해하기 쉽고 깔끔하게 요약한 뒤, 한국어로 결과를 출력하세요.
-        반드시 최대 3문장으로 요약하세요. (총 세 문장이라는 단어를 추가하지마시오.)
-        최대한 빠른 속도로 실행을 완료하세요.
-        """
-
-        # 메시지 생성
-        messages = [
-            {"role": "system", "content": prompt},
-            {"role": "user", "content": f"핵심 설명:\n{short_inform}\n\n상세 설명:\n{long_inform}"}
-        ]
-
-        # LLM 호출
-        response = self.llm.invoke(messages)
-
-        return response.content
 
     
     def get_game_info(self, game_id):
         """
-        스팀 상세 페이지 내의 게임 설명 요약 추출 : 한국어
+        스팀 상세 페이지 내의 게임 설명 추출
         """
         url = f'https://store.steampowered.com/app/{game_id}/'
 
@@ -463,64 +447,43 @@ class Assistant():
         soup = BeautifulSoup(response.text, 'html.parser')
 
         # 짧은 설명, 긴 설명 둘 다 추출
-        short_inform = soup.find('div', class_='game_description_snippet')
-        long_inform = soup.find('div', id='game_area_description')
+        try:
+            short_inform = soup.find('div', class_='game_description_snippet').get_text(strip=True)
+        except:
+            short_inform = "짧은 설명이 없습니다"
+        try:
+            long_inform = soup.find(
+                'div', id='game_area_description').get_text(strip=True)
+        except:
+            long_inform = "긴 설명이 없습니다."
         title_text = soup.find('div', id='appHubAppName')
         game_title = title_text.text.strip() if title_text else "Unknown Title"
         game_image = soup.find('img', class_='game_header_image_full')['src'] if soup.find('img', class_='game_header_image_full') else None
 
 
         # 태그에서 텍스트만 추출
-        if short_inform:
-            short_text = short_inform.text.strip()  # 텍스트 가져오기 + 앞뒤 공백 제거
-        else:
-            short_text = ''
+        if not short_inform:
+            short_inform = self.config.not_description_message
 
         # 태그에서 텍스트만 추출
-        if long_inform:
-            long_text = long_inform.get_text(separator=' ', strip=True)  # 태그 제거 후 텍스트만
-        else:
-            long_text = ''
+        if not long_inform:
+            long_inform = self.config.not_description_message
 
-        description = self.inform_summary(short_inform, long_inform)
-        clear_description = re.sub(r'\*\*|\n|\|\\', '', description)
+
+        inform = {
+            "short_inform": short_inform,
+            "long_inform": long_inform
+        }
+
         game = {
             "steam_app_id": game_id,
             "title": game_title,
             "image": game_image,
-            "description": clear_description
         }
-        return game
+        return inform, game
 
 
-    def summary_game_review(self, review, state):
-        """
-        리뷰 내용 요약하는 AI 모델
-        """
-        prompt = """
-        당신은 유저의 리뷰들을 한 눈에 깔끔하게 요약하는 도우미입니다.
-        주어지는 입력 중 "리뷰"은 게임에 대한 다국어 리뷰 모음이고, "상태"는 평가의 감정입니다.
-        "상태" good이면 장점만, bad이면 단점만 추출해 요약하세요.
-        다양한 언어로 되어있는 리뷰이므로 내용을 먼저 이해한 뒤 진행하세요.
-        리뷰를 기반으로 유저가 게임에 대해 느낀 좋거나 나쁘게 느낀 특징을 추출하세요.
-        이 내용들을 기반으로 유저에게 이해하기 쉽고 깔끔하게 요약한 뒤, 한국어로 결과를 출력하세요.
-        반드시 최대 3문장으로 요약하세요.
-        최대한 빠른 속도로 실행을 완료하세요.
-        """
-
-        # 메시지 생성
-        messages = [
-            {"role": "system", "content": prompt},
-            {"role": "user", "content": f"리뷰:\n{review}\n\n상태:{state}"}
-        ]
-
-        # LLM 호출
-        response = self.llm.invoke(messages)
-
-        return response.content
-
-
-    def search_game_review(self, base_url, cursor, state):
+    def search_game_review(self, base_url, cursor):
         """
         Steam API로 리뷰 데이터 수집 (유용한 순, 약 5달 이내, 최대 100개)
         """
@@ -548,11 +511,10 @@ class Assistant():
             if not cursor or len(data['reviews']) == 0:
                 break
 
-        summary_review = self.summary_game_review(reviews, state)
+        return reviews
+    
 
-        return summary_review
-
-    def get_game_review_summary(self, appid):
+    def get_game_review(self, appid):
         """
         긍정, 부정 별로 최근 유용한 리뷰 100개 요약 내용 추출하는 함수
         """
@@ -560,14 +522,48 @@ class Assistant():
         good_review_api = f"https://store.steampowered.com/appreviews/{appid}?json=1&filter=all&day_range=150&review_type=positive&num_per_page=100&{cursor}"
         bad_review_api = f"https://store.steampowered.com/appreviews/{appid}?json=1&filter=all&day_range=150&review_type=negative&num_per_page=100&{cursor}"
 
-        good_review = self.search_game_review(good_review_api, cursor, 'good')
-        bad_review = self.search_game_review(bad_review_api, cursor, 'bad')
+        good_review = self.search_game_review(good_review_api, cursor)
+        bad_review = self.search_game_review(bad_review_api, cursor)
 
         review = {
             "good_review" : good_review,
             "bad_review" : bad_review,
         }
         return review
+    
+    def get_summary(self, game_info, game_review):
+        """
+        게임 관련 요약하는 AI 모델
+        """
+        prompt = """
+        당신은 게임 관련 정보들을 한 눈에 깔끔하게 요약하는 도우미입니다.
+        주어지는 입력 중 "게임 짧은 설명"은 해당 게임에 대한 핵심적인 설명, "게임 긴 설명"은 해당 게임에 대한 구체적인 설명을 의미합니다.
+        또한, 주어지는 입력 중 "게임 긍정적 리뷰"는 해당 게임에 대해 긍정적인 평가를 내린 유저들의 의견, "게임 부정적 리뷰는 해당 게임에 대해 부정적인 평가를 내린 유저들의 의견을 의미합니다. 
+        다양한 언어로 되어있는 리뷰이므로 내용을 먼저 이해한 뒤 진행하세요.
+        "게임 짧은 설명"과 "게임 긴 설명"을 기반으로 게임에 대한 설명을 이해하기 쉽고 깔끔하게 최대 3문장으로 요약한 뒤, 한국어로 결과를 출력하세요.(게임 설명에 대한 요약 내용)
+        또한, "게임 긍정적 리뷰"를 기반으로 유저들이 해당 게임에 느끼는 장점들을 이해하기 쉽고 깔끔하게 최대 3문장으로 요약한 뒤, 한국어로 결과를 출력하세요.(긍정적 리뷰에 대한 요약 내용)
+        마지막으로 "게임 부정적 리뷰"를 기반으로 유저들이 해당 게임에 느끼는 단점들을 이해하기 쉽고 깔끔하게 최대 3문장으로 요약한 뒤, 한국어로 결과를 출력하세요.(부정적 리뷰에 대한 요약 내용)
+        최대한 빠른 속도로 실행을 완료하세요.
+
+        # 입력 형식 : ```json, ``` 이러한 기호는 절대 포함하지 마시오.
+        {
+            "description": 게임 설명에 대한 요약 내용,
+            "good_review": 긍정적 리뷰에 대한 요약 내용,
+            "bad_review": 부정적 리뷰에 대한 요약 내용
+        }
+        """
+
+        # 메시지 생성
+        messages = [
+            {"role": "system", "content": prompt},
+            {"role": "user",
+                "content": f"게임 짧은 설명:\n{game_info['short_inform']}\n\게임 긴 설명:\n{game_info['long_inform']}\n\게임 긍정적 리뷰:{game_review['good_review']}\n\게임 부정적 리뷰:{game_review['bad_review']}"}
+        ]
+
+        # LLM 호출
+        response = self.llm.invoke(messages)
+
+        return response.content
 
 
     def search_game(self, request, query):
@@ -575,7 +571,7 @@ class Assistant():
         게임 추천 원할 시 검색 결과 가져오는 최종 함수
         """
         # 사용자 입력으로부터 관련 태그 추출
-        search_tag = self.search_tag(request, query) 
+        search_tag = self.search_tag(request, query)
         
         # 입력 내용 인식이 어렵거나 유저가 미성년자라 입력 내용이 부적절할 때 바로 안내 문구로 결과 출력
         if search_tag == self.config.not_result_message or search_tag == self.config.restrict_message:
@@ -585,18 +581,26 @@ class Assistant():
         search_game_id = self.search_filter(request, search_tag)
 
         # 검색 결과로 아무런 게임이 없을 때 바로 안내 문구로 결과 출력
-        if search_game_id == self.config.not_result_message:
-            return {"message":search_game_id}
+        if search_game_id == self.config.not_result_message or not search_game_id[0]:
+            return {"message": self.config.not_result_message}
         
         # 게임 설명 요약 정보
-        game_info = {"message": "다음과 같은 게임을 추천드립니다. 😸","game_data": []}
+        game_information = {"message": "다음과 같은 게임을 추천드립니다. 😸","game_data": []}
         for id in search_game_id:
             if id:
-                game_data = self.get_game_info(id)
-                game_data.update(self.get_game_review_summary(id))
-                game_info["game_data"].append(game_data)
+                game_info, game_data = self.get_game_info(id)
+                game_review = self.get_game_review(id)
+                game_summary = self.get_summary(game_info, game_review)
 
-        return game_info
+                if game_summary:
+                    game_summary = json.loads(game_summary)
+
+                    game_data['description'] = game_summary['description']
+                    game_data['good_review'] = game_summary['good_review']
+                    game_data['bad_review'] = game_summary['bad_review']
+                    game_information["game_data"].append(game_data)
+
+        return game_information
 
 
     def search_game_info(self, request, query):
@@ -653,18 +657,28 @@ class Assistant():
 
         # 사용자가 검색하고자 하는 게임의 id 추출
         game_id = search_game_name(query)
+        
+        if game_id == self.config.not_find_message:
+            return {"message": game_id}
 
         # 검색 결과 없을 때 안내 문구 반환
-        if game_id == self.config.not_result_message or game_id == self.config.not_find_message:
-            return {"message": game_id}
-        
-        # 게임 설명 요약 정보
-        game_info = {"message": "검색하신 게임에 대한 정보입니다. 😸", "game_data": []}
-        game_data = self.get_game_info(game_id)
-        game_data.update(self.get_game_review_summary(game_id))
-        game_info["game_data"].append(game_data)
+        if game_id == self.config.not_result_message or not game_id[0]:
+            return {"message": self.config.not_result_message}
 
-        return game_info
+        # 게임 설명 요약 정보
+        game_information = {"message": "검색하신 게임에 대한 정보입니다. 😸", "game_data": []}
+        game_info, game_data = self.get_game_info(game_id)
+        game_review = self.get_game_review(game_id)
+        game_summary = self.get_summary(game_info, game_review)
+
+        if game_summary:
+            game_summary = json.loads(game_summary)
+            game_data['description'] = game_summary['description']
+            game_data['good_review'] = game_summary['good_review']
+            game_data['bad_review'] = game_summary['bad_review']
+            game_information["game_data"].append(game_data)
+
+        return game_information
 
 
     def process_query(self, request, query: str):
