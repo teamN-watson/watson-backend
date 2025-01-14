@@ -48,12 +48,12 @@ class ReviewSerializer(serializers.ModelSerializer):
     comments = ReviewCommentSerializer(many=True, read_only=True)  # 연결된 댓글들
     total_likes = serializers.IntegerField(read_only=True)  # annotate로 계산된 값
     total_dislikes = serializers.IntegerField(read_only=True)  # annotate로 계산된 값
-    game_name = serializers.SerializerMethodField()
+
 
     class Meta:
         model = Review
         fields = [
-            'id', 'user', 'nickname', 'content', 'app_id', 'game_name', 'score', 'categories', 
+            'id', 'user', 'nickname', 'content', 'app_id', 'game_name', 'header_image', 'score', 'categories', 
             'created_at', 'updated_at', 'comments', 'total_likes', 'total_dislikes'
         ]
         read_only_fields = [
@@ -74,3 +74,10 @@ class ReviewSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("평점은 0.5 단위로 작성되어야 합니다.")
         return value
 
+    def get_game_name(self, obj):
+        """Game의 이름 반환"""
+        return obj.game_name
+
+    def get_header_image(self, obj):
+        """Game의 헤더 이미지 반환"""
+        return obj.header_image

@@ -1,6 +1,8 @@
 from django.db import models
 from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
+from accounts.models import Game
+
 
 class Review(models.Model):
     '''Review 모델 설정'''
@@ -10,6 +12,11 @@ class Review(models.Model):
         null=True,
         blank=True,
         related_name="reviews"
+    )
+    game = models.ForeignKey(
+    Game,
+    on_delete=models.CASCADE,
+    related_name="game_reviews"  # 게임과 연결된 리뷰
     )
     content = models.TextField()  # 리뷰 내용
     app_id = models.IntegerField()  # Steam API에서 가져온 게임 ID (해당 게임 리뷰 작성 페이지로 이동할때 프론트엔드가 app_id 전달함)
@@ -35,7 +42,7 @@ class Review(models.Model):
         else:
             nickname = "알수없음"
 
-        return f"Review 작성자 : {nickname} - 스팀 게임 번호 : {self.app_id} - 게임 이름 : {self.game_name} - 평점 : ({self.score})"
+        return f"Review 작성자 : {nickname} - 스팀 게임 번호 : {self.app_id} - 게임 이름 : {self.game.name} - 평점 : ({self.score})"
 
 
 
