@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404
 from .models import Review, ReviewComment, ReviewLike, ReviewCommentLike
 from .serializers import ReviewSerializer, ReviewCommentSerializer, ReviewLikeSerializer, ReviewCommentLikeSerializer
 from django.db.models import Count
-
+from accounts.models import Game
 
 class ReviewAPIView(APIView):
     """
@@ -55,14 +55,24 @@ class ReviewAPIView(APIView):
         serializer = ReviewSerializer(data=request.data)
         if serializer.is_valid():
             # Game 객체 가져오기
-            game = serializer.validated_data.get('game')
-            categories = serializer.validated_data.get('categories', [])  # 사용자 입력 categories
+            app_id = serializer.validated_data.get('app_id')
+            
 
-            # 리뷰 생성 (categories는 저장)
-            review = serializer.save(user=request.user)
+            # app_id와 매칭되는 Game 객체 찾기
+            game = Game.objects.filter(appID=app_id).first()
+            if not game:
+                return Response({"app_id": "유효하지 않은 app_id 입니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+            # 사용자 입력 categories 가져오기
+            categories = serializer.validated_data.get('categories', [])
+
+            # 리뷰 생성
+            review = serializer.save()
 
             # 응답용 데이터 생성 (Game의 genres와 사용자가 입력한 categories 병합)
             response_data = serializer.data.copy()
+            response_data['game_name'] = game.name
+            response_data['header_image'] = game.header_image
             response_data['categories'] = list(set(game.genres + categories))  # 중복 제거 후 병합
 
             return Response(response_data, status=status.HTTP_201_CREATED)

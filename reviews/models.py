@@ -1,7 +1,7 @@
 from django.db import models
 from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
-from accounts.models import Game
+from django.db import models
 
 
 class Review(models.Model):
@@ -12,11 +12,6 @@ class Review(models.Model):
         null=True,
         blank=True,
         related_name="reviews"
-    )
-    game = models.ForeignKey(
-    Game,
-    on_delete=models.CASCADE,
-    related_name="game_reviews"  # 게임과 연결된 리뷰
     )
     content = models.TextField()  # 리뷰 내용
     app_id = models.IntegerField()  # Steam API에서 가져온 게임 ID (해당 게임 리뷰 작성 페이지로 이동할때 프론트엔드가 app_id 전달함)
@@ -36,11 +31,22 @@ class Review(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)  # 리뷰 생성 시간
     updated_at = models.DateTimeField(auto_now=True)  # 리뷰 수정 시간
 
-    def save(self, *args, **kwargs):
-        """저장 시 categories가 비어 있으면 game.genres 사용"""
-        if not self.categories and self.game and self.game.genres:
-            self.categories = self.game.genres
-        super().save(*args, **kwargs)
+    @property
+    def game(self):
+        """app_id를 기반으로 Game 객체 반환"""
+        from accounts.models import Game  # Game 모델 임포트
+        return Game.objects.filter(appID=self.app_id).first()
+
+    @property
+    def game_name(self):
+        """Game 이름 반환"""
+        return self.game.name if self.game else "Unknown Game"
+
+    @property
+    def header_image(self):
+        """Game 헤더 이미지 반환"""
+        return self.game.header_image if self.game else None
+
 
     def __str__(self):
         if self.user:
