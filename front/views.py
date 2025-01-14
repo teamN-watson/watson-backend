@@ -27,6 +27,10 @@ def profile(request, pk):
     return render(request, "account/profile.html", context={"id": pk})
 
 
+def chatbot(request):
+    return render(request, "chatbot/talk.html")
+
+
 def steam(request):
     user_id = request.GET.get("user_id")  # URL에서 user_id를 가져옵니다
 
