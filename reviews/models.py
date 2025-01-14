@@ -13,7 +13,6 @@ class Review(models.Model):
     )
     content = models.TextField()  # 리뷰 내용
     app_id = models.IntegerField()  # Steam API에서 가져온 게임 ID (해당 게임 리뷰 작성 페이지로 이동할때 프론트엔드가 app_id 전달함)
-    game_name = models.CharField(max_length=100)  # 게임 이름
     score = models.DecimalField(
     max_digits=2,
     decimal_places=1,

@@ -50,7 +50,7 @@ class ReviewAPIView(APIView):
         serializer = ReviewSerializer(reviews, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-
+    # app_id로 게임을 찾아서 카테고리를 추가해주는 로직 추가
     def post(self, request):
         """새 리뷰 생성 """
         serializer = ReviewSerializer(data=request.data)
