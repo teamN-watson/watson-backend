@@ -5,7 +5,6 @@ from django.urls import reverse
 from django.shortcuts import redirect, render
 from accounts.models import Account
 import requests
-from .forms import ReviewForm
 
 
 def index(request):
