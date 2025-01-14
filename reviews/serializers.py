@@ -48,17 +48,18 @@ class ReviewSerializer(serializers.ModelSerializer):
     comments = ReviewCommentSerializer(many=True, read_only=True)  # 연결된 댓글들
     total_likes = serializers.IntegerField(read_only=True)  # annotate로 계산된 값
     total_dislikes = serializers.IntegerField(read_only=True)  # annotate로 계산된 값
-    game_name = serializers.CharField(source='game.name', read_only=True)  # Game 모델의 이름
-    header_image = serializers.CharField(source='game.header_image', read_only=True)  # Game 모델의 헤더 이미지
+    game_name = serializers.CharField(read_only=True)
+    header_image = serializers.CharField(read_only=True)
+
 
     class Meta:
         model = Review
         fields = [
-            'id', 'user', 'nickname', 'content', 'app_id', 'game_name', 'header_image', 'score', 'categories', 
+            'id', 'user', 'nickname', 'content', 'app_id', 'game_name', 'header_image', 'score', 'categories',
             'created_at', 'updated_at', 'comments', 'total_likes', 'total_dislikes'
         ]
         read_only_fields = [
-            'id', 'created_at', 'updated_at', 'comments', 'total_likes', 'total_dislikes', 'game_name', 'header_image'
+            'id', 'created_at', 'updated_at', 'comments', 'total_likes', 'total_dislikes', 'game_name', 'header_image', 'categories'
         ]
 
     def get_nickname(self, obj):
