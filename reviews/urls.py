@@ -19,6 +19,9 @@ urlpatterns = [
     # 특정 리뷰에 좋아요/비추천 생성 및 상태 변경
     path("<int:review_id>/like/", views.ReviewLikeAPIView.as_view(), name="review_like"),  # /api/reviews/<review_id>/like/
 
+    # 특정 댓글에 좋아요/비추천 생성 및 상태 변경
+    path("comments/<int:comment_id>/like/", views.ReviewCommentLikeAPIView.as_view(), name="review_comment_like"),  # /api/reviews/comments/<comment_id>/like/
+
     # 리뷰 검색
     path("search/", views.ReviewSearchAPIView.as_view(), name="review_search"),  # /api/reviews/search/
     

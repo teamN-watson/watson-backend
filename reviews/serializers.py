@@ -39,7 +39,11 @@ class ReviewLikeSerializer(serializers.ModelSerializer):
         """유저 닉네임 반환 (유저가 없으면 '알수없음')"""
         return obj.user.nickname if obj.user else "알수없음"
 
-
+    def validate_is_active(self, value):
+        """is_active 필드 값 검증"""
+        if value not in [1, -1, 0]:
+            raise serializers.ValidationError("is_active 값은 1(좋아요), -1(비추천), 0(중립) 중 하나여야 합니다.")
+        return value
 
 
 class ReviewSerializer(serializers.ModelSerializer):
