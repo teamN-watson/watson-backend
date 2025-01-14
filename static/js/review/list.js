@@ -15,13 +15,12 @@ function get_review(){
                     let year = objectDate.getFullYear();
     
                     var title = "Zomboid";
-                    var categories = ["생존", "좀비", "멀티 플레이어"]
                     list_wrap.append(`
                         <div class="game_row">
                             <div class="game_title">
-                                <div class="game_img"><img src="/static/images/games/1.jpg"></div>
+                                <div class="game_img"><img src="${el.header_image}"></div>
                                 <div class="game_info">
-                                    <h4>${title}</h4>
+                                    <h4>${el.game_name}</h4>
                                     <div class="categories"></div>
                                     <span>${year}년 ${month+1}월 ${day}일</span>
                                     <span>${el.nickname}</span>
@@ -33,7 +32,7 @@ function get_review(){
                             </div>
                         </div>`);
                     const game_row = $("div.listWrap .game_row:last div.categories")
-                    categories.forEach(category => {
+                    el.categories.forEach(category => {
                         game_row.append(`<span class="category">${category}</span>`);
                     });
                 }
