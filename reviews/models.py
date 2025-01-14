@@ -1,6 +1,7 @@
 from django.db import models
 from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
+from django.db import models
 from accounts.models import Game
 
 
@@ -13,11 +14,6 @@ class Review(models.Model):
         null=True,
         blank=True,
         related_name="reviews",
-    )
-    game = models.ForeignKey(
-        Game,
-        on_delete=models.CASCADE,
-        related_name="game_reviews",  # 게임과 연결된 리뷰
     )
     content = models.TextField()  # 리뷰 내용
     app_id = (
@@ -38,10 +34,38 @@ class Review(models.Model):
     updated_at = models.DateTimeField(auto_now=True)  # 리뷰 수정 시간
 
     def save(self, *args, **kwargs):
-        """저장 시 categories가 비어 있으면 game.genres 사용"""
-        if not self.categories and self.game and self.game.genres:
-            self.categories = self.game.genres
+        """저장 시 app_id가 변경되면 categories 업데이트"""
+        # 기존 app_id 확인
+        original_app_id = None
+        if self.pk:  # 기존에 저장된 객체라면
+            original_app_id = Review.objects.get(pk=self.pk).app_id
+
+        # app_id가 변경된 경우
+        if original_app_id != self.app_id:
+            game = Game.objects.filter(appID=self.app_id).first()
+            if game:
+                self.categories = (
+                    game.genres
+                )  # 새로운 app_id에 따른 categories 업데이트
+
         super().save(*args, **kwargs)
+
+    @property
+    def game(self):
+        """app_id를 기반으로 Game 객체 반환"""
+        from accounts.models import Game  # Game 모델 임포트
+
+        return Game.objects.filter(appID=self.app_id).first()
+
+    @property
+    def game_name(self):
+        """Game 이름 반환"""
+        return self.game.name if self.game else "Unknown Game"
+
+    @property
+    def header_image(self):
+        """Game 헤더 이미지 반환"""
+        return self.game.header_image if self.game else None
 
     def __str__(self):
         if self.user:

@@ -39,7 +39,11 @@ class ReviewLikeSerializer(serializers.ModelSerializer):
         """유저 닉네임 반환 (유저가 없으면 '알수없음')"""
         return obj.user.nickname if obj.user else "알수없음"
 
-
+    def validate_is_active(self, value):
+        """is_active 필드 값 검증"""
+        if value not in [1, -1, 0]:
+            raise serializers.ValidationError("is_active 값은 1(좋아요), -1(비추천), 0(중립) 중 하나여야 합니다.")
+        return value
 
 
 class ReviewSerializer(serializers.ModelSerializer):
@@ -48,17 +52,18 @@ class ReviewSerializer(serializers.ModelSerializer):
     comments = ReviewCommentSerializer(many=True, read_only=True)  # 연결된 댓글들
     total_likes = serializers.IntegerField(read_only=True)  # annotate로 계산된 값
     total_dislikes = serializers.IntegerField(read_only=True)  # annotate로 계산된 값
-    game_name = serializers.CharField(source='game.name', read_only=True)  # Game 모델의 이름
-    header_image = serializers.CharField(source='game.header_image', read_only=True)  # Game 모델의 헤더 이미지
+    game_name = serializers.CharField(read_only=True)
+    header_image = serializers.CharField(read_only=True)
+
 
     class Meta:
         model = Review
         fields = [
-            'id', 'user', 'nickname', 'content', 'app_id', 'game_name', 'header_image', 'score', 'categories', 
+            'id', 'user', 'nickname', 'content', 'app_id', 'game_name', 'header_image', 'score', 'categories',
             'created_at', 'updated_at', 'comments', 'total_likes', 'total_dislikes'
         ]
         read_only_fields = [
-            'id', 'created_at', 'updated_at', 'comments', 'total_likes', 'total_dislikes', 'game_name', 'header_image'
+            'id', 'created_at', 'updated_at', 'comments', 'total_likes', 'total_dislikes', 'game_name', 'header_image', 'categories'
         ]
 
     def get_nickname(self, obj):

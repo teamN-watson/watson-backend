@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404
 from .models import Review, ReviewComment, ReviewLike, ReviewCommentLike
 from .serializers import ReviewSerializer, ReviewCommentSerializer, ReviewLikeSerializer, ReviewCommentLikeSerializer
 from django.db.models import Count
-
+from accounts.models import Game
 
 class ReviewAPIView(APIView):
     """
@@ -55,15 +55,27 @@ class ReviewAPIView(APIView):
         serializer = ReviewSerializer(data=request.data)
         if serializer.is_valid():
             # Game 객체 가져오기
-            game = serializer.validated_data.get('game')
-            categories = serializer.validated_data.get('categories', [])  # 사용자 입력 categories
+            app_id = serializer.validated_data.get('app_id')
+            
 
-            # 리뷰 생성 (categories는 저장)
+            # app_id와 매칭되는 Game 객체 찾기
+            game = Game.objects.filter(appID=app_id).first()
+            if not game:
+                return Response({"app_id": "유효하지 않은 app_id 입니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+            # 리뷰 생성
             review = serializer.save(user=request.user)
 
-            # 응답용 데이터 생성 (Game의 genres와 사용자가 입력한 categories 병합)
+            # Game의 genres를 categories로 저장
+            review.categories = game.genres  # Game의 genres를 리뷰에 설정
+            review.save()
+
+            # 응답용 데이터 생성
             response_data = serializer.data.copy()
-            response_data['categories'] = list(set(game.genres + categories))  # 중복 제거 후 병합
+            response_data['game_name'] = game.name
+            response_data['header_image'] = game.header_image
+
 
             return Response(response_data, status=status.HTTP_201_CREATED)
 
@@ -187,6 +199,13 @@ class ReviewLikeAPIView(APIView):
         """좋아요/비추천 생성 및 상태 변경"""
         review = get_object_or_404(Review, pk=review_id)
 
+        # 요청 데이터에 'is_active' 필드가 없는 경우 에러 반환
+        if "is_active" not in request.data:
+            return Response(
+                {"error": "'is_active' 필드는 필수입니다. (1=좋아요, -1=비추천, 0=중립)"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         serializer = ReviewLikeSerializer(data=request.data)
         if serializer.is_valid():
             # 기존 좋아요/비추천 업데이트 또는 새로 생성
@@ -232,15 +251,19 @@ class ReviewSearchAPIView(APIView):
         if not keyword:
             return Response({"detail": "검색어를 입력해주세요."}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Game 테이블에서 keyword와 매칭되는 appID 가져오기
+        game_ids = Game.objects.filter(name__icontains=keyword).values_list('appID', flat=True)
+
         # 검색 조건: 리뷰 내용, 카테고리, 게임 이름
         reviews = Review.objects.filter(
-            Q(content__icontains=keyword) |
-            Q(categories__icontains=keyword) |
-            Q(game_name__icontains=keyword)  # 게임 이름 검색 추가
+            Q(content__icontains=keyword) |  # 리뷰 내용 검색
+            Q(categories__icontains=keyword) |  # 카테고리 검색
+            Q(app_id__in=game_ids)  # Game 이름 검색 결과 매칭
         ).distinct()
 
         if not reviews.exists():
             return Response({"detail": "검색 결과가 없습니다."}, status=status.HTTP_404_NOT_FOUND)
 
+        # 직렬화 및 응답
         serializer = ReviewSerializer(reviews, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
