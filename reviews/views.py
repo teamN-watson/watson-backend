@@ -65,13 +65,13 @@ class ReviewAPIView(APIView):
 
 
             # 리뷰 생성
-            review = serializer.save()
+            review = serializer.save(user=request.user)
 
             # Game의 genres를 categories로 저장
             review.categories = game.genres  # Game의 genres를 리뷰에 설정
             review.save()
 
-            # 응답용 데이터 생성 
+            # 응답용 데이터 생성
             response_data = serializer.data.copy()
             response_data['game_name'] = game.name
             response_data['header_image'] = game.header_image
@@ -198,6 +198,13 @@ class ReviewLikeAPIView(APIView):
     def post(self, request, review_id):
         """좋아요/비추천 생성 및 상태 변경"""
         review = get_object_or_404(Review, pk=review_id)
+
+        # 요청 데이터에 'is_active' 필드가 없는 경우 에러 반환
+        if "is_active" not in request.data:
+            return Response(
+                {"error": "'is_active' 필드는 필수입니다. (1=좋아요, -1=비추천, 0=중립)"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         serializer = ReviewLikeSerializer(data=request.data)
         if serializer.is_valid():
