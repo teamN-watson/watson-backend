@@ -2,7 +2,7 @@ from django.db import models
 from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
-
+from accounts.models import Game
 
 class Review(models.Model):
     '''Review 모델 설정'''
@@ -30,6 +30,14 @@ class Review(models.Model):
     view_count = models.PositiveIntegerField(default=0) # 조회수
     created_at = models.DateTimeField(auto_now_add=True)  # 리뷰 생성 시간
     updated_at = models.DateTimeField(auto_now=True)  # 리뷰 수정 시간
+
+    def save(self, *args, **kwargs):
+        """저장 시 categories 필드 자동 채우기"""
+        if not self.categories:
+            game = Game.objects.filter(appID=self.app_id).first()
+            if game:
+                self.categories = game.genres  # Game의 genres를 저장
+        super().save(*args, **kwargs)
 
     @property
     def game(self):

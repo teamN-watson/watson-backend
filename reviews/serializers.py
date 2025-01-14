@@ -51,14 +51,15 @@ class ReviewSerializer(serializers.ModelSerializer):
     game_name = serializers.CharField(read_only=True)
     header_image = serializers.CharField(read_only=True)
 
+
     class Meta:
         model = Review
         fields = [
-            'id', 'user', 'nickname', 'content', 'app_id', 'game_name', 'header_image', 'score', 'categories', 
+            'id', 'user', 'nickname', 'content', 'app_id', 'game_name', 'header_image', 'score', 'categories',
             'created_at', 'updated_at', 'comments', 'total_likes', 'total_dislikes'
         ]
         read_only_fields = [
-            'id', 'created_at', 'updated_at', 'comments', 'total_likes', 'total_dislikes', 'game_name', 'header_image'
+            'id', 'created_at', 'updated_at', 'comments', 'total_likes', 'total_dislikes', 'game_name', 'header_image', 'categories'
         ]
 
     def get_nickname(self, obj):

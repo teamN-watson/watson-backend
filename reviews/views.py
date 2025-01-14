@@ -63,17 +63,19 @@ class ReviewAPIView(APIView):
             if not game:
                 return Response({"app_id": "유효하지 않은 app_id 입니다."}, status=status.HTTP_400_BAD_REQUEST)
 
-            # 사용자 입력 categories 가져오기
-            categories = serializer.validated_data.get('categories', [])
 
             # 리뷰 생성
             review = serializer.save()
 
-            # 응답용 데이터 생성 (Game의 genres와 사용자가 입력한 categories 병합)
+            # Game의 genres를 categories로 저장
+            review.categories = game.genres  # Game의 genres를 리뷰에 설정
+            review.save()
+
+            # 응답용 데이터 생성 
             response_data = serializer.data.copy()
             response_data['game_name'] = game.name
             response_data['header_image'] = game.header_image
-            response_data['categories'] = list(set(game.genres + categories))  # 중복 제거 후 병합
+
 
             return Response(response_data, status=status.HTTP_201_CREATED)
 
