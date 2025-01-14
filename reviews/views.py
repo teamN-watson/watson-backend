@@ -50,13 +50,23 @@ class ReviewAPIView(APIView):
         serializer = ReviewSerializer(reviews, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    # app_id로 게임을 찾아서 카테고리를 추가해주는 로직 추가
     def post(self, request):
-        """새 리뷰 생성 """
+        """새 리뷰 생성"""
         serializer = ReviewSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save(user=request.user)  # 현재 요청 유저를 저장
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            # Game 객체 가져오기
+            game = serializer.validated_data.get('game')
+            categories = serializer.validated_data.get('categories', [])  # 사용자 입력 categories
+
+            # 리뷰 생성 (categories는 저장)
+            review = serializer.save(user=request.user)
+
+            # 응답용 데이터 생성 (Game의 genres와 사용자가 입력한 categories 병합)
+            response_data = serializer.data.copy()
+            response_data['categories'] = list(set(game.genres + categories))  # 중복 제거 후 병합
+
+            return Response(response_data, status=status.HTTP_201_CREATED)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class ReviewDetailAPIView(APIView):
