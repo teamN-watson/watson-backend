@@ -244,15 +244,19 @@ class ReviewSearchAPIView(APIView):
         if not keyword:
             return Response({"detail": "검색어를 입력해주세요."}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Game 테이블에서 keyword와 매칭되는 appID 가져오기
+        game_ids = Game.objects.filter(name__icontains=keyword).values_list('appID', flat=True)
+
         # 검색 조건: 리뷰 내용, 카테고리, 게임 이름
         reviews = Review.objects.filter(
-            Q(content__icontains=keyword) |
-            Q(categories__icontains=keyword) |
-            Q(game_name__icontains=keyword)  # 게임 이름 검색 추가
+            Q(content__icontains=keyword) |  # 리뷰 내용 검색
+            Q(categories__icontains=keyword) |  # 카테고리 검색
+            Q(app_id__in=game_ids)  # Game 이름 검색 결과 매칭
         ).distinct()
 
         if not reviews.exists():
             return Response({"detail": "검색 결과가 없습니다."}, status=status.HTTP_404_NOT_FOUND)
 
+        # 직렬화 및 응답
         serializer = ReviewSerializer(reviews, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
