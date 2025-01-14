@@ -36,6 +36,12 @@ class Review(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)  # 리뷰 생성 시간
     updated_at = models.DateTimeField(auto_now=True)  # 리뷰 수정 시간
 
+    def save(self, *args, **kwargs):
+        """저장 시 categories가 비어 있으면 game.genres 사용"""
+        if not self.categories and self.game and self.game.genres:
+            self.categories = self.game.genres
+        super().save(*args, **kwargs)
+
     def __str__(self):
         if self.user:
             nickname = self.user.nickname
