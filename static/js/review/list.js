@@ -19,9 +19,9 @@ function get_review(){
                     list_wrap.append(`
                         <div class="game_row">
                             <div class="game_title">
-                                <div class="game_img"><img src="/static/images/games/1.jpg"></div>
+                                <div class="game_img"><img src="${el.header_image}"></div>
                                 <div class="game_info">
-                                    <h4>${title}</h4>
+                                    <h4>${el.game_name}</h4>
                                     <div class="categories"></div>
                                     <span>${year}년 ${month+1}월 ${day}일</span>
                                     <span>${el.nickname}</span>

@@ -4,7 +4,7 @@ function get_record(access_token){
         headers:{
             "Authorization": `Bearer ${access_token}`
         },
-        method: 'GET',
+        method: 'POST',
         success: function(data){
             console.log(data)
             const record = $("div.chatbot_record")
