@@ -116,6 +116,12 @@ class ReviewDetailAPIView(APIView):
 
         serializer = ReviewSerializer(review, data=request.data, partial=True)
         if serializer.is_valid():
+            # app_id 유효성 검사
+            app_id = serializer.validated_data.get('app_id')
+            if app_id and not Game.objects.filter(appID=app_id).exists():
+                return Response({"app_id": "유효하지 않은 app_id 입니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+            # 유효한 경우 리뷰 저장
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
