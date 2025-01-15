@@ -101,7 +101,7 @@ $(document).ready(function() {
                             </div>`)                
                     }
                 } else {
-                    div_recent_games.append(`<div>보유한 게임이 없습니다.</div>`)
+                    div_owned_games.append(`<div>보유한 게임이 없습니다.</div>`)
                 }
                 
                 const recent_games = response.data.recent_games;
