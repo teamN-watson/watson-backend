@@ -56,7 +56,14 @@ class ReviewAPIView(APIView):
         if serializer.is_valid():
             # Game 객체 가져오기
             app_id = serializer.validated_data.get('app_id')
-            
+            user = request.user
+
+            # 동일한 app_id와 user 조합의 리뷰가 이미 존재하는지 확인
+            if Review.objects.filter(app_id=app_id, user=user).exists():
+                return Response(
+                    {"detail": "한 게임의 리뷰는 하나만 작성 가능합니다."},
+                    status=status.HTTP_400_BAD_REQUEST
+                ) # 이미 리뷰가 존재하는 경우 에러 반환
 
             # app_id와 매칭되는 Game 객체 찾기
             game = Game.objects.filter(appID=app_id).first()
@@ -116,8 +123,16 @@ class ReviewDetailAPIView(APIView):
 
         serializer = ReviewSerializer(review, data=request.data, partial=True)
         if serializer.is_valid():
-            # app_id 유효성 검사
             app_id = serializer.validated_data.get('app_id')
+
+            # app_id 중복 체크: 현재 리뷰를 제외한 동일 app_id가 존재하는지 확인
+            if app_id and Review.objects.filter(app_id=app_id, user=request.user).exclude(pk=pk).exists():
+                return Response(
+                    {"detail": "한 게임에는 한 리뷰만 작성 가능합니다."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # app_id 유효성 검사
             if app_id and not Game.objects.filter(appID=app_id).exists():
                 return Response({"app_id": "유효하지 않은 app_id 입니다."}, status=status.HTTP_400_BAD_REQUEST)
 
