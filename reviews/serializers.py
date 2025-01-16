@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Review, ReviewComment, ReviewLike, ReviewCommentLike
+from accounts.models import Game
 
 class ReviewCommentSerializer(serializers.ModelSerializer):
     """ReviewComment 모델 직렬화"""
@@ -80,3 +81,10 @@ class ReviewSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("평점은 0.5 단위로 작성되어야 합니다.")
         return value
 
+class GameSerializer(serializers.ModelSerializer):
+    """
+    Game 모델 직렬화
+    """
+    class Meta:
+        model = Game
+        fields = ['appID', 'name', 'header_image', 'genres', 'supported_languages']
