@@ -25,4 +25,6 @@ urlpatterns = [
     # 리뷰 검색
     path("search/", views.ReviewSearchAPIView.as_view(), name="review_search"),  # /api/reviews/search/
     
+    # 게임 상세 정보
+    path("game/<int:app_id>/", views.GameDetailAPIView.as_view(), name="game_detail"),  # /api/reviews/game/<app_id>/
     ]
