@@ -1,0 +1,36 @@
+.chatbotContainer {
+    width: 960px;
+    margin: 0 auto;
+}
+/* .chatbot_record */
+.chatbot_record {
+    min-height: 50vh;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 50px;
+
+}
+
+.chatbot_record .ai {
+    text-align: left;
+}
+.chatbot_record .user {
+    text-align: right;
+    margin-bottom: 10px;
+}
+
+/* chatbot_input */
+.chatbot_input {
+    border: 1px solid #2f2f2f;
+    border-radius: 2px;
+    margin: 50px 0;
+}
+
+.chatbot_input input {
+    background-color: transparent;
+    padding: 20px;
+    width: 100%;
+    border: none;
+    color: #000;
+}

@@ -10,7 +10,7 @@ export default function App() {
     <Routes>
       <Route element={<GlobalLayout />}>
         <Route path="/" element={<Index />} />
-        <Route path="/auth" element={<Signin />} />
+        <Route path="/signin" element={<Signin />} />
       </Route>
     </Routes>
   );

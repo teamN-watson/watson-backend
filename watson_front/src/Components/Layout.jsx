@@ -8,7 +8,9 @@ export default function GlobalLayout() {
         <div>
             <Header />
             <main id="main">
-                <Outlet />
+                <div className="container">
+                    <Outlet />
+                </div>
             </main>
             <Footer />
         </div>

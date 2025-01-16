@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django_extensions",
+    "corsheaders",
     # my app
     "accounts",
     "reviews",
@@ -53,7 +54,7 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
-    "drf_yasg" #swagger_ui add : 이시헌
+    "drf_yasg",  # swagger_ui add : 이시헌
 ]
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
@@ -62,7 +63,7 @@ SIMPLE_JWT = {
     "BLACKLIST_AFTER_ROTATION": True,
 }
 
-LOGIN_URL = 'front:signin'  # 로그인 URL을 front 앱의 signin으로 설정
+LOGIN_URL = "front:signin"  # 로그인 URL을 front 앱의 signin으로 설정
 
 
 REST_FRAMEWORK = {
@@ -79,6 +80,11 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
+]
+# CORS 설정
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",  # Vite 개발 서버 주소
 ]
 
 ROOT_URLCONF = "watson.urls"

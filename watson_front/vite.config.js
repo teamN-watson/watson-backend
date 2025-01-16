@@ -10,7 +10,9 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
+      "@src": getAliasPath("./src"),
       "@assets": getAliasPath("./src/assets"),
+      "@store": getAliasPath("./src/store"),
     },
   },
 });

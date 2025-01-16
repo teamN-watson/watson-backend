@@ -20,6 +20,7 @@ module.exports = {
     plugins: ['react', 'prettier'],
     rules: {
       // 추가적인 ESLint 규칙을 여기에 작성할 수 있습니다
+      "no-unused-vars": "warn",
       'prettier/prettier': ['error', { singleQuote: true }], // Prettier 규칙을 강제로 적용
     },
     globals: {
