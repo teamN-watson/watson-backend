@@ -30,4 +30,5 @@ urlpatterns = [
     path("interest/", views.interest, name="interest"),
     path("profile/", views.profile, name="profile"),
     path("steam_profile/", views.steam_profile, name="steam_profile"),
+    path("block/", views.BlockedUserAPIView.as_view(), name="block"),
 ]

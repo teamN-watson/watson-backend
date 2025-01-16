@@ -154,3 +154,24 @@ class SteamPlaytime(models.Model):
     """
     account = models.ForeignKey(Account, on_delete=models.CASCADE)
     app_id = models.CharField(max_length=50)
+
+class Block(models.Model):
+    """
+    유저 차단 정보를 저장할 모델
+    """
+    blocker = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="blocked_users"  # 차단한 유저
+    )
+    blocked_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="blocked_by_users"  # 차단된 유저
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = [('blocker', 'blocked_user')]
+        ordering = ['-created_at']

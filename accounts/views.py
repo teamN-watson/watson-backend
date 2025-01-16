@@ -1,7 +1,7 @@
 from rest_framework.decorators import api_view
 from rest_framework.views import APIView
 
-from .models import Account, AccountInterest, Interest
+from .models import Account, AccountInterest, Interest, Block
 
 from .serializers import (
     AccountDeleteSerializer,
@@ -406,3 +406,56 @@ def steam_profile(request):
         )
     else:
         return Response({"message": "Invalid request."}, status=400)
+
+
+class BlockedUserAPIView(APIView):
+    """
+    차단된 유저 관련 API 뷰
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """차단된 유저 목록 반환"""
+        blocked_users = Block.objects.filter(blocker=request.user).select_related('blocked_user')
+
+        # 차단된 유저가 없을 때의 응답 처리
+        if not blocked_users.exists():
+            return Response({"message": "차단한 유저가 없습니다."}, status=status.HTTP_200_OK)
+
+        # 차단된 유저가 있을 때의 응답 처리
+        data = [
+            {
+                "id": block.blocked_user.id,
+                "nickname": block.blocked_user.nickname,
+            }
+            for block in blocked_users
+        ]
+        return Response(data, status=status.HTTP_200_OK)
+    
+    def post(self, request):
+        """유저 차단"""
+        blocked_user_id = request.data.get("blocked_user_id")
+        blocked_user = get_object_or_404(Account, id=blocked_user_id)
+
+        # 본인이 본인을 차단하려는 경우 방지
+        if blocked_user == request.user:
+            return Response({"message": "본인을 차단할 수 없습니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 차단 생성
+        block, created = Block.objects.get_or_create(blocker=request.user, blocked_user=blocked_user)
+        if not created:
+            return Response({"message": "이미 차단된 사용자입니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({"message": "유저를 차단했습니다."}, status=status.HTTP_201_CREATED)
+
+    def delete(self, request):
+        """유저 차단 해제"""
+        blocked_user_id = request.data.get("blocked_user_id")
+        blocked_user = get_object_or_404(Account, id=blocked_user_id)
+
+        # 차단 해제
+        deleted, _ = Block.objects.filter(blocker=request.user, blocked_user=blocked_user).delete()
+        if not deleted:
+            return Response({"message": "차단된 유저가 아닙니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({"message": "유저 차단을 해제했습니다."}, status=status.HTTP_204_NO_CONTENT)
