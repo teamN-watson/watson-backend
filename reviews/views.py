@@ -293,18 +293,25 @@ class GameDetailAPIView(APIView):
     """
     Game 상세 페이지 API
     """
+    permission_classes = [AllowAny]
+
     def get(self, request, app_id):
         # Game 객체 가져오기
         game = get_object_or_404(Game, appID=app_id)
-        # 사용자의 리뷰와 다른 리뷰 분리
+
+        # 리뷰 가져오기
         reviews = Review.objects.filter(app_id=app_id)
-        my_review = reviews.filter(user=request.user).first() if request.user.is_authenticated else None
-        other_reviews = reviews.exclude(user=request.user)
+        my_review = None  # 기본값 설정
+
+        # 사용자가 인증된 경우에만 자신의 리뷰 필터링
+        if request.user.is_authenticated:
+            my_review = reviews.filter(user_id=request.user.id).first()  # user_id로 매칭
+            reviews = reviews.exclude(user_id=request.user.id)
 
         # 직렬화
         game_serializer = GameSerializer(game)
         my_review_serializer = ReviewSerializer(my_review) if my_review else None
-        other_reviews_serializer = ReviewSerializer(other_reviews, many=True)
+        other_reviews_serializer = ReviewSerializer(reviews, many=True)
 
         return Response({
             "game": game_serializer.data,
