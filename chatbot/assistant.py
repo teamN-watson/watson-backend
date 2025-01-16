@@ -2,14 +2,13 @@ from pydantic import BaseModel, Field
 from dataclasses import dataclass
 import os
 from langchain_openai import ChatOpenAI
-from typing import Literal
+from typing import Literal, List
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.prompts import PromptTemplate
-from langchain_core.runnables import RunnableSequence
 import requests
-import re
 from bs4 import BeautifulSoup
-from django.contrib.auth import get_user_model
+from langchain.schema.runnable import Runnable, RunnableSequence
+from langchain.schema import LLMResult, AIMessage, SystemMessage, HumanMessage
 from accounts.models import SteamProfile, SteamReview, SteamPlaytime
 from accounts.models import Tag, InterestTag, AccountInterest
 from fake_useragent import UserAgent
@@ -54,6 +53,45 @@ class AgentAction(BaseModel):
         description="사용자가 입력에 기반한 핵심 텍스트입니다",
         min_length=1,  # 최소 1글자 이상이어야 함
     )
+
+
+class SummaryParser(BaseModel):
+    """
+    요약 모델의 출력 형태를 정의하는 Pydantic 모델
+    """
+    description: str = Field(
+        description="게임에 대한 설명을 요약한 텍스트입니다",
+        min_length=1,  # 최소 1글자 이상이어야 함
+    )
+
+    good_review: str = Field(
+        description="게임을 추천하는 유저의 리뷰를 요약한 텍스트입니다",
+        min_length=1,  # 최소 1글자 이상이어야 함
+    )
+
+    bad_review: str = Field(
+    description="게임을 비추천하는 유저의 리뷰를 요약한 텍스트입니다",
+    min_length=1,  # 최소 1글자 이상이어야 함
+    )
+
+
+# 커스텀 출력 파서
+class ListOutputParser(Runnable):
+    def invoke(self, input: AIMessage, config=None) -> List[int]:
+        try:
+            # AIMessage 객체에서 내용 추출
+            text = input.content.strip()
+
+            # 문자열을 리스트로 변환
+            parsed_list = eval(text)
+            if isinstance(parsed_list, list) and all(isinstance(x, int) for x in parsed_list):
+                return parsed_list
+            else:
+                raise ValueError("Invalid list format")
+        except Exception as e:
+            print(f"Parsing error: {e}")
+            return []
+
 
 class Assistant():
     """
@@ -140,13 +178,149 @@ class Assistant():
 
             {format_instructions}""")
 
-        # 실행 체인 생성
+
+
+        # 사용자 입력 태그 실행 체인 생성
         # 프롬프트 -> LLM -> 출력 파서로 이어지는 처리 파이프라인
         self.chain = RunnableSequence(
             first=self.agent_prompt,
             middle=[self.llm],
             last=self.agent_parser
         )
+
+        # 프롬프트 템플릿 설정
+        self.input_tags_template = PromptTemplate(
+            input_variables=["user_input", "tags"],
+            template="""
+            당신은 주어진 사용자 입력에서 키워드를 추출하고, 그 키워드(또는 그 키워드와 의미가 유사한 단어)가
+            태그 사전(tag)에 들어있는 name_ko와 부분 일치 혹은 유의미하게 관련이 있다면 그 태그를 최대 3개까지 추출하시오.
+            반드시 주어진 태그 사전에 존재하는 태그로 추출하시오.
+
+            # 단계별 지침
+            1. 사용자 입력에서 핵심 키워드를 골라내시오.
+            - 예시) "농사짓고 낚시하는 힐링 게임 추천해줘"라는 입력이 들어올 때 -> ["농사", "낚시", "힐링"] 키워드 추출
+            2. tag 배열에 들어있는 tag 객체들의 name_ko(한글 태그명)와 해당 키워드를 비교하여,
+            - 완전 일치(동일 단어)가 있으면 우선적으로 선택.
+            - 부분 일치나 유의미하게 유사(예시: "농사"키워드가 있을 때 "농장"나 "농업" 등, "낚시"와 "낚시질"와 "물고기" 등)가 있으면 그 태그를 선택.
+            - 전혀 관련이 없으면 선택하지 말기.
+            3. 최종적으로 최대 3개의 태그를 골라서, 아래 형식 그대로 출력하시오.
+            4. 출력은 최종적으로 선택된 태그들만 출력하시오.
+
+            # 중요 규칙
+            - 주어진 태그 사전(tag)에 실제로 존재하는 name_ko 값만 사용하시오.
+            - 최대 3개까지만 응답. 0개여도 좋음.
+            - 사용자가 원하지 않은 (무관한) 태그는 절대 포함하지 마시오.
+            - 최종적으로 선택된 태그에 대한 정보만 추출하시오.
+            - 한글이 아닌 name_ko는 무시해도 좋음(또는 필요시 부분일치).
+
+            사용자 입력:
+            {user_input}
+
+            태그 사전:
+            {tags}
+
+            # 출력 형식
+            [steam_tag_id1, steam_tag_id2, steam_tag_id3]
+            """
+        )
+
+        # LLM 체인 생성
+        self.inputchain = RunnableSequence(
+            first=self.input_tags_template,
+            middle=[self.llm],
+            last=ListOutputParser()
+        )
+
+        # 프롬프트 템플릿 설정
+        self.interest_tags_template = PromptTemplate(
+            input_variables=["user_input", "tags"],
+            template="""
+            당신은 게임 태그 분석 도우미입니다.
+            주어지는 입력 중 "사용자 입력"은 사용자가 원하는 장르, "관심사 태그"는 사용자가 평소에 좋아하던 게임에 대한 특징을 의미하는 태그 정보입니다.
+            "관심사 태그"는 게임 별로 여러 그룹으로 나뉘어있는 정보입니다. 
+            주어진 사용자 입력과 사용자 관심사 태그를 바탕으로, 여러 그룹 중 사용자가 원하는 장르와 연관이 있는 게임이 있는지 먼저 찾습니다.
+            연관이 있는 게임을 먼저 찾은 뒤, 사용자 입력을 고려하여 앞서 찾은 연관된 게임의 비장르적 특징 (ex, 분위기 있는, 다채로운, 귀여운 등)을 최대 2개 추출합니다.
+            만일 연관된 게임이 전혀 없었다면 사용자 입력에 연관성이 높거나 분위기가 비슷한 게임 내 비장르적 특징 태그(steam_tag_id)를 추론합니다.
+            추론할 특징 태그는 반드시 주어진 관심사 태그 안에 있는 태그로 추론합니다.
+
+            주어진 정보:
+            - 사용자 입력: (예: "총 쏘고 경쟁하는 게임 추천해줘")
+            - 사용자 관심사 태그: (예: ["귀여운", "힐링"])
+            - 각 태그는 게임의 특정 특징이나 분위기를 나타냅니다.
+
+            작업 지침:
+            - 주어진 사용자 입력과 관심사 태그의 의미를 해석합니다.
+            - 선택된 태그들은 실제로 함께 쓰일 가능성이 높은, 논리적이고 의미 있는 연관성을 가져야 합니다.
+            - 연관있는 태그가 없을 시 아무런 결과도 반환하지 않아도 됨
+            - 반드시 주어진 관심사 태그에 있는 태그로 추출해야 합니다.
+            - "인디", "캐주얼"은 직접적인 언급이 있지 않은 이상 포함하지 마시오.
+            - 게임과 일반적으로 연관있는 태그들은 사용자가 직접적으로 언급하지 않는 이상 포함하지 마시오. (예. 게임-이스포츠)
+            - '팀기반', '멀티' 이와 같은 기능적 특징 또한 사용자가 직접적으로 언급하지 않는 이상 포함하시 마시오.
+
+            제한 사항:
+            - 게임 장르 태그(MOBA, RPG, 스포츠, 액션 등)는 제외합니다.
+            - 결과는 steam_tag_id만을 포함한 리스트여야 합니다.
+            - 최대 2개의 태그를 추출하며, 상황에 따라 2개 미만일 수 있습니다.
+
+            사용자 입력:
+            {user_input}
+
+            관심사 태그:
+            {tags}
+
+            # 출력 형식
+            [steam_tag_id1, steam_tag_id2]
+            """
+        )
+
+        # LLM 체인 생성
+        self.interestchain = RunnableSequence(
+            first=self.interest_tags_template,
+            middle=[self.llm],
+            last=ListOutputParser()
+        )
+
+        # JSON 출력 파서 설정
+        self.summary_parser = JsonOutputParser(pydantic_object=SummaryParser)
+
+        # 프롬프트 템플릿 설정
+        self.summary_template = PromptTemplate(
+            input_variables=["short_inform", "long_inform", "good_review", "bad_review"],
+            partial_variables={
+                "format_instructions": self.summary_parser.get_format_instructions()},
+            template="""
+            당신은 게임 관련 정보들을 한 눈에 깔끔하게 요약하는 도우미입니다.
+            주어지는 입력 중 "짧은 게임 설명"은 해당 게임에 대한 핵심적인 설명, "긴 게임 설명"은 해당 게임에 대한 구체적인 설명을 의미합니다.
+            또한, 주어지는 입력 중 "긍정적 게임 리뷰"는 해당 게임에 대해 긍정적인 평가를 내린 유저들의 의견, "부정적 게임 리뷰는 해당 게임에 대해 부정적인 평가를 내린 유저들의 의견을 의미합니다. 
+            다양한 언어로 되어있는 리뷰이므로 내용을 먼저 이해한 뒤 진행하세요.
+            "게임 짧은 설명"과 "게임 긴 설명"을 기반으로 게임에 대한 설명을 이해하기 쉽고 깔끔하게 최대 3문장으로 요약한 뒤, 한국어로 결과를 출력하세요.(게임 설명에 대한 요약 내용)
+            또한, "게임 긍정적 리뷰"를 기반으로 유저들이 해당 게임에 느끼는 장점들을 이해하기 쉽고 깔끔하게 최대 3문장으로 요약한 뒤, 한국어로 결과를 출력하세요.(긍정적 리뷰에 대한 요약 내용)
+            마지막으로 "게임 부정적 리뷰"를 기반으로 유저들이 해당 게임에 느끼는 단점들을 이해하기 쉽고 깔끔하게 최대 3문장으로 요약한 뒤, 한국어로 결과를 출력하세요.(부정적 리뷰에 대한 요약 내용)
+            최대한 빠른 속도로 실행을 완료하세요.
+
+            짧은 게임 설명:
+            {short_inform}
+
+            긴 게임 설명:
+            {long_inform}
+
+            긍정적 게임 리뷰:
+            {good_review}
+
+            부정적 게임 리뷰:
+            {bad_review}
+
+            {format_instructions}
+            """
+            )
+
+        # 프롬프트 -> LLM -> 출력 파서로 이어지는 처리 파이프라인
+        self.summarychain = RunnableSequence(
+            first=self.summary_template,
+            middle=[self.llm],
+            last=self.summary_parser
+        )
+
 
     def get_game_tag(self, app_id):
         """
@@ -187,63 +361,13 @@ class Assistant():
         """
         실제 검색하고자 하는 태그 추출 (관심사, 스팀 데이터 반영)
         """
+        tags = list(Tag.objects.values("name_ko", "steam_tag_id"))
 
-        def input_tag(self, user_input):
-            """
-            사용자 입력으로부터 태그 추출하는 함수
-            """
-            # 프롬프트 설정
-            input_prompt = """
-            당신은 주어진 사용자 입력에서 키워드를 추출하고, 그 키워드(또는 그 키워드와 의미가 유사한 단어)가
-            태그 사전(tag)에 들어있는 name_ko와 부분 일치 혹은 유의미하게 관련이 있다면 그 태그를 최대 3개까지 추출하시오.
-            반드시 주어진 태그 사전에 존재하는 태그로 추출하시오.
-
-            # 단계별 지침
-            1. 사용자 입력에서 핵심 키워드를 골라내시오.
-            - 예시) "농사짓고 낚시하는 힐링 게임 추천해줘"라는 입력이 들어올 때 -> ["농사", "낚시", "힐링"] 키워드 추출
-            2. tag 배열에 들어있는 tag 객체들의 name_ko(한글 태그명)와 해당 키워드를 비교하여,
-            - 완전 일치(동일 단어)가 있으면 우선적으로 선택.
-            - 부분 일치나 유의미하게 유사(예시: "농사"키워드가 있을 때 "농장"나 "농업" 등, "낚시"와 "낚시질"와 "물고기" 등)가 있으면 그 태그를 선택.
-            - 전혀 관련이 없으면 선택하지 말기.
-            3. 최종적으로 최대 3개의 태그를 골라서, 아래 형식 그대로 출력하시오.
-            4. 출력은 최종적으로 선택된 태그들만 출력하시오.
-
-
-            # 응답 형식
-            - 반드시 아래 파이썬 list 객체 형태로만 응답하시오.  
-            - **트리플 백틱(```)이나 코드블록, 추가 설명 문장 등은 절대 포함하지 마시오.**  
-            - name_ko 제외한 steam_tag_id만 출력하시오.
-            - 응답 예시(만약 태그가 2개라면):
-            [첫번째 태그 번호, 두번째 태그 번호]
-
-            # 중요 규칙
-            - 주어진 태그 사전(tag)에 실제로 존재하는 name_ko 값만 사용하시오.
-            - 최대 3개까지만 응답. 0개여도 좋음.
-            - 사용자가 원하지 않은 (무관한) 태그는 절대 포함하지 마시오.
-            - 최종적으로 선택된 태그에 대한 정보만 추출하시오.
-            - 한글이 아닌 name_ko는 무시해도 좋음(또는 필요시 부분일치).
-            """
-
-            # Django 모델 객체를 리스트로 변환
-            tags = list(Tag.objects.values("name_ko", "steam_tag_id"))
-
-            # 메시지 생성
-            messages = [
-                {"role": "system", "content": input_prompt},
-                {"role": "user", "content": f"사용자 입력:\n{user_input}\n\ntag:\n{tags}"}
-            ]
-
-            # LLM 호출
-            response = self.llm.invoke(messages)
-            return response.content
-            
-        input_tag = input_tag(self, query)
-
-        # 사용자 입력에서 아무런 결과도 출력되지 않을 때 안내 문구 반환
-        if input_tag:
-            input_tag = json.loads(input_tag)
-        else:
-            return self.config.not_result_message
+        # LLM 호출
+        input_tag = self.inputchain.invoke({
+            "user_input": query,
+            "tags": tags
+        })
 
         # 미성년자의 경우 검색어 필터링
         if request.user.age < 20:
@@ -281,53 +405,6 @@ class Assistant():
             # 리스트의 리스트 형태로 반환
             return list(grouped_result.values())
         
-        
-        def find_similar_tags(self, interest_tag, input):
-            """
-            사용자 입력 + 관심사 정보 모두 고려한 실제 검색 결과 추출 AI 모델
-            """
-            # 프롬프트 설정
-            similar_prompt = """
-            당신은 게임 태그 분석 도우미입니다.
-            주어지는 입력 중 "사용자 입력"은 사용자가 원하는 장르, "관심사 태그"는 사용자가 평소에 좋아하던 게임에 대한 특징을 의미하는 태그 정보입니다.
-            "관심사 태그"는 게임 별로 여러 그룹으로 나뉘어있는 정보입니다. 
-            주어진 사용자 입력과 사용자 관심사 태그를 바탕으로, 여러 그룹 중 사용자가 원하는 장르와 연관이 있는 게임이 있는지 먼저 찾습니다.
-            연관이 있는 게임을 먼저 찾은 뒤, 사용자 입력을 고려하여 앞서 찾은 연관된 게임의 비장르적 특징 (ex, 분위기 있는, 다채로운, 귀여운 등)을 최대 3개 추출합니다.
-            만일 연관된 게임이 전혀 없었다면 사용자 입력에 연관성이 높거나 분위기가 비슷한 게임 내 비장르적 특징 태그(steam_tag_id)를 추론합니다.
-            추론할 특징 태그는 반드시 주어진 관심사 태그 안에 있는 태그로 추론합니다.
-
-            주어진 정보:
-            - 사용자 입력: (예: "총 쏘고 경쟁하는 게임 추천해줘")
-            - 사용자 관심사 태그: (예: ["귀여운", "힐링"])
-            - 각 태그는 게임의 특정 특징이나 분위기를 나타냅니다.
-
-            작업 지침:
-            - 주어진 사용자 입력과 관심사 태그의 의미를 해석합니다.
-            - 선택된 태그들은 실제로 함께 쓰일 가능성이 높은, 논리적이고 의미 있는 연관성을 가져야 합니다.
-            - 연관있는 태그가 없을 시 아무런 결과도 반환하지 않아도 됨
-            - 반드시 주어진 관심사 태그에 있는 태그로 추출해야 합니다.
-            - "인디", "캐주얼"은 직접적인 언급이 있지 않은 이상 포함하지 마시오.
-            - 게임과 일반적으로 연관있는 태그들은 사용자가 직접적으로 언급하지 않는 이상 포함하지 마시오. (예. 게임-이스포츠)
-
-            제한 사항:
-            - 게임 장르 태그(MOBA, RPG, 스포츠, 액션 등)는 제외합니다.
-            - 결과는 steam_tag_id만을 포함한 리스트여야 합니다.
-            - 최대 3개의 태그를 추출하며, 상황에 따라 3개 미만일 수 있습니다.
-
-            응답 형식 예시: [492, 649, 3582]
-            """
-
-            # 메시지 생성
-            messages = [
-                {"role": "system", "content": similar_prompt},
-                {"role": "user", "content": f"관심사 태그:\n{interest_tag}\n\n사용자 입력:\n{input}"}
-            ]
-
-            # LLM 호출
-            response = self.llm.invoke(messages)
-
-            return response.content
-        
         # 스팀 연동된 유저인지 확인
         if request.user.steamId:
             # 리뷰 쓴 유저일 때
@@ -363,10 +440,14 @@ class Assistant():
             tags.append(tag_group)
         
         # 관심사 태그와 사용자 입력과 연관지을 수 있는 태그 추출
-        found_tag = find_similar_tags(self, query, tags)
+        # LLM 호출
+        found_tag = self.interestchain.invoke({
+            "user_input": query,
+            "tags": tags
+        })
+        
         if found_tag:
-            found_tag_list = json.loads(found_tag)
-            return input_tag, list(set(input_tag + found_tag_list))
+            return input_tag, list(set(input_tag + found_tag))
         else:
             return input_tag, input_tag
 
@@ -556,35 +637,6 @@ class Assistant():
             "bad_review" : bad_review,
         }
         return review
-    
-    def get_summary(self, game_info, game_review):
-        """
-        게임 관련 요약하는 AI 모델
-        """
-        prompt = """
-        당신은 게임 관련 정보들을 한 눈에 깔끔하게 요약하는 도우미입니다.
-        주어지는 입력 중 "게임 짧은 설명"은 해당 게임에 대한 핵심적인 설명, "게임 긴 설명"은 해당 게임에 대한 구체적인 설명을 의미합니다.
-        또한, 주어지는 입력 중 "게임 긍정적 리뷰"는 해당 게임에 대해 긍정적인 평가를 내린 유저들의 의견, "게임 부정적 리뷰는 해당 게임에 대해 부정적인 평가를 내린 유저들의 의견을 의미합니다. 
-        다양한 언어로 되어있는 리뷰이므로 내용을 먼저 이해한 뒤 진행하세요.
-        "게임 짧은 설명"과 "게임 긴 설명"을 기반으로 게임에 대한 설명을 이해하기 쉽고 깔끔하게 최대 3문장으로 요약한 뒤, 한국어로 결과를 출력하세요.(게임 설명에 대한 요약 내용)
-        또한, "게임 긍정적 리뷰"를 기반으로 유저들이 해당 게임에 느끼는 장점들을 이해하기 쉽고 깔끔하게 최대 3문장으로 요약한 뒤, 한국어로 결과를 출력하세요.(긍정적 리뷰에 대한 요약 내용)
-        마지막으로 "게임 부정적 리뷰"를 기반으로 유저들이 해당 게임에 느끼는 단점들을 이해하기 쉽고 깔끔하게 최대 3문장으로 요약한 뒤, 한국어로 결과를 출력하세요.(부정적 리뷰에 대한 요약 내용)
-        최대한 빠른 속도로 실행을 완료하세요.
-
-        # 입력 형식 : ```json, ``` 이러한 기호는 절대 포함하지 마시오.
-        {
-            "description": 게임 설명에 대한 요약 내용,
-            "good_review": 긍정적 리뷰에 대한 요약 내용,
-            "bad_review": 부정적 리뷰에 대한 요약 내용
-        }
-        """
-
-        # 메시지 생성
-        messages = [
-            {"role": "system", "content": prompt},
-            {"role": "user",
-                "content": f"게임 짧은 설명:\n{game_info['short_inform']}\n\게임 긴 설명:\n{game_info['long_inform']}\n\게임 긍정적 리뷰:{game_review['good_review']}\n\게임 부정적 리뷰:{game_review['bad_review']}"}
-        ]
 
         # LLM 호출
         response = self.llm.invoke(messages)
@@ -616,11 +668,16 @@ class Assistant():
             if id:
                 game_info, game_data = self.get_game_info(id)
                 game_review = self.get_game_review(id)
-                game_summary = self.get_summary(game_info, game_review)
-
+                # LLM 호출
+                game_summary = self.summarychain.invoke({
+                    "short_inform": game_info['short_inform'],
+                    "long_inform": game_info['long_inform'],
+                    "good_review": game_review['good_review'],
+                    "bad_review": game_review['bad_review']
+                    
+                })
+                
                 if game_summary:
-                    game_summary = json.loads(game_summary)
-
                     game_data['description'] = game_summary['description']
                     game_data['good_review'] = game_summary['good_review']
                     game_data['bad_review'] = game_summary['bad_review']
