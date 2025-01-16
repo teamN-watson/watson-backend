@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.shortcuts import get_object_or_404
 from .models import Review, ReviewComment, ReviewLike, ReviewCommentLike
-from .serializers import ReviewSerializer, ReviewCommentSerializer, ReviewLikeSerializer, ReviewCommentLikeSerializer
+from .serializers import ReviewSerializer, ReviewCommentSerializer, ReviewLikeSerializer, ReviewCommentLikeSerializer, GameSerializer
 from django.db.models import Count
 from accounts.models import Game
 
@@ -288,3 +288,26 @@ class ReviewSearchAPIView(APIView):
         # 직렬화 및 응답
         serializer = ReviewSerializer(reviews, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+class GameDetailAPIView(APIView):
+    """
+    Game 상세 페이지 API
+    """
+    def get(self, request, app_id):
+        # Game 객체 가져오기
+        game = get_object_or_404(Game, appID=app_id)
+        # 사용자의 리뷰와 다른 리뷰 분리
+        reviews = Review.objects.filter(app_id=app_id)
+        my_review = reviews.filter(user=request.user).first() if request.user.is_authenticated else None
+        other_reviews = reviews.exclude(user=request.user)
+
+        # 직렬화
+        game_serializer = GameSerializer(game)
+        my_review_serializer = ReviewSerializer(my_review) if my_review else None
+        other_reviews_serializer = ReviewSerializer(other_reviews, many=True)
+
+        return Response({
+            "game": game_serializer.data,
+            "my_review": my_review_serializer.data if my_review else None,
+            "reviews": other_reviews_serializer.data
+        })
