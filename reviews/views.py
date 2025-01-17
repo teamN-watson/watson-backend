@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404
 from .models import Review, ReviewComment, ReviewLike, ReviewCommentLike
 from .serializers import ReviewSerializer, ReviewCommentSerializer, ReviewLikeSerializer, ReviewCommentLikeSerializer, GameSerializer
 from django.db.models import Count
-from accounts.models import Game
+from accounts.models import Game, Block
 
 class ReviewAPIView(APIView):
     """
@@ -26,6 +26,7 @@ class ReviewAPIView(APIView):
     
     def get(self, request):
         """리뷰 목록 조회"""
+        blocked_users = Block.objects.filter(blocker=request.user).values_list('blocked_user', flat=True) if request.user.is_authenticated else []
         sort_by = request.query_params.get('sort_by', 'recent')  # 기본 정렬 기준: 최신순
         category = request.query_params.get('category', None)  # 카테고리 필터링 추가
 
@@ -47,7 +48,7 @@ class ReviewAPIView(APIView):
         else:  # 최신순
             reviews = reviews.order_by('-created_at')
 
-        serializer = ReviewSerializer(reviews, many=True)
+        serializer = ReviewSerializer(reviews, many=True, context={'request': request, 'blocked_users': list(blocked_users)})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request):
@@ -107,11 +108,14 @@ class ReviewDetailAPIView(APIView):
         """특정 리뷰 조회"""
         review = get_object_or_404(Review, pk=pk)
 
+        # 차단된 사용자 목록 가져오기
+        blocked_users = Block.objects.filter(blocker=request.user).values_list('blocked_user', flat=True) if request.user.is_authenticated else []
+
         # 조회수 증가 로직
         review.view_count += 1
         review.save()
 
-        serializer = ReviewSerializer(review)
+        serializer = ReviewSerializer(review, context={'request': request, 'blocked_users': list(blocked_users)})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def put(self, request, pk):
