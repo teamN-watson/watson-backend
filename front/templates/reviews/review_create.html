@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% load static %}
+{% block extrahead %}
+<link rel="stylesheet" type="text/css" href="{% static "css/review/create.css" %}">
+<script src="{% static 'js/review/create.js' %}"></script>
+{% endblock %}
+{% block content %}
+<div class="rCreateContainer">
+    <h2>새 리뷰 작성</h2>
+    <form action="/view/review_create/" method="POST">
+        <div class="createForm">
+            {% csrf_token %}
+            <label for="id_content">내용</label>
+            <textarea name="content" cols="40" rows="10" required="" id="id_content"></textarea>
+
+            <label for="id_app_id">App id</label>
+            <input type="number" name="app_id" required="" id="id_app_id">
+
+            <label for="id_score">점수</label>
+            <input type="number" name="score" value="0" step="0.1" id="id_score">
+
+            <button type="submit">리뷰 등록</button>
+        </div>
+    </form>
+</div>
+
+{% endblock content %}
