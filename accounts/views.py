@@ -30,6 +30,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from rest_framework_simplejwt.authentication import JWTAuthentication
 import environ
 import requests
+from urllib import parse
 
 from accounts import serializers
 
@@ -406,6 +407,45 @@ def steam_profile(request):
         )
     else:
         return Response({"message": "Invalid request."}, status=400)
+
+
+
+@api_view(["GET"])
+def steam_login(request):
+    user_id = request.data["user_id"]  # URL에서 user_id를 가져옵니다
+
+    steam_openid_url = "https://steamcommunity.com/openid/login"
+    params = {
+        "openid.ns": "http://specs.openid.net/auth/2.0",
+        "openid.identity": "http://specs.openid.net/auth/2.0/identifier_select",
+        "openid.claimed_id": "http://specs.openid.net/auth/2.0/identifier_select",
+        "openid.mode": "checkid_setup",
+        "openid.return_to": f"http://localhost:5173/steam/callback?user_id={user_id}",  # user_id를 포함하여 반환
+        "openid.realm": "http://localhost:5173/",  # not sure what it is
+    }
+    param_string = parse.urlencode(params)
+    auth_url = steam_openid_url + "?" + param_string
+    return JsonResponse({"auth_url": auth_url})
+
+
+@api_view(["GET"])
+def steam_callback(request):
+    steam_url = request.data["openid.claimed_id"]
+
+    # 'openid.claimed_id'가 존재하는 경우, 스팀 ID 추출
+    if steam_url:
+        steam_id = steam_url.split("/")[-1]  # URL에서 마지막 부분을 스팀 ID로 처리
+        user_id = request.data["user_id"]
+
+        try:
+            account = Account.objects.get(user_id=user_id)
+            account.steamId = steam_id
+            account.save()
+
+            return JsonResponse({"message": "Steam ID linked successfully!"})
+        except Account.DoesNotExist:
+            return JsonResponse({"error": "Account not found"}, status=404)
+    return JsonResponse({"error": "Invalid method"}, status=405)
 
 
 class BlockedUserAPIView(APIView):
