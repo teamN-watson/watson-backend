@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404
 from .models import Review, ReviewComment, ReviewLike, ReviewCommentLike
 from .serializers import ReviewSerializer, ReviewCommentSerializer, ReviewLikeSerializer, ReviewCommentLikeSerializer, GameSerializer
 from django.db.models import Count
-from accounts.models import Game, Block
+from accounts.models import Game, Block, Notice
 
 class ReviewAPIView(APIView):
     """
@@ -181,7 +181,17 @@ class ReviewCommentAPIView(APIView):
         review = get_object_or_404(Review, pk=review_id)
         serializer = ReviewCommentSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save(user=request.user, review=review)
+            # 댓글 저장
+            comment = serializer.save(user=request.user, review=review)
+
+            # 알림 생성: 리뷰 작성자에게
+            if review.user and review.user != request.user:  # 본인이 작성한 리뷰에 댓글을 단 경우 제외
+                Notice.objects.create(
+                    user_id=review.user,
+                    type=1,  # 댓글 알림
+                    content=f"{request.user.nickname}님이 '{review.content[:20]}...'에 댓글을 남겼습니다."
+                )
+
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

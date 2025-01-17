@@ -106,6 +106,7 @@ class Notice(models.Model):
     )
     type = models.IntegerField(default=0)
     content = models.CharField(max_length=50)
+    is_read = models.BooleanField(default=False) # 읽음 여부
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

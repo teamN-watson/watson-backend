@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Account, Interest
+from .models import Account, Interest, Notice
 from django.contrib.auth.hashers import make_password  # 비밀번호 해싱
 from django.core.validators import validate_email
 import re
@@ -278,3 +278,9 @@ class InterestSerializer(serializers.ModelSerializer):
     class Meta:
         model = Interest
         fields = ["id", "name"]  # 모든 필드를 직렬화
+
+
+class NoticeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notice
+        fields = ['id', 'type', 'content', 'is_read', 'created_at', 'updated_at']
