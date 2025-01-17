@@ -71,7 +71,10 @@ REST_FRAMEWORK = {
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],
 }
-
+CORS_ALLOW_HEADERS = [
+    "content-type",  # Content-Type 허용
+    "authorization",  # Authorization 허용
+]
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",

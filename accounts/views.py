@@ -31,6 +31,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 import environ
 import requests
 from urllib import parse
+import json
 
 from accounts import serializers
 
@@ -232,7 +233,7 @@ class MypageAPIView(APIView):
                             "age": user.age,
                             "email": user.email,
                             "nickname": user.nickname,
-                            "photo": user.photo.url if user.photo else "",
+                            "photo": user.photo.url if user.photo.url else user.photo,
                         },
                     },
                 }
@@ -371,8 +372,8 @@ def steam_profile(request):
             print("test", response.status_code == 200 and response_data["avatar"] != {})
             # 요청 성공 여부 확인
             if response.status_code == 200 and response_data["avatar"] != {}:
-                data["animated_avatar"] = response_data
                 if response_data["avatar"] != None and response_data["avatar"] != "":
+                    data["steam_photo"] = response_data["avatar"]["image_small"]
                     user.photo = response_data["avatar"]["image_small"]
                     user.save()
             else:
@@ -392,6 +393,7 @@ def steam_profile(request):
                         and response_data["players"][0]
                         and response_data["players"][0]["avatarfull"]
                     ):
+                        data["steam_photo"] = response_data["players"][0]["avatarfull"]
                         user.photo = response_data["players"][0]["avatarfull"]
                         user.save()
 
@@ -411,37 +413,53 @@ def steam_profile(request):
 
 @api_view(["GET"])
 def steam_login(request):
-    user_id = request.data["user_id"]  # URL에서 user_id를 가져옵니다
+    user_id = request.query_params.get("user_id")
 
     steam_openid_url = "https://steamcommunity.com/openid/login"
+    # 공통 파라미터
     params = {
         "openid.ns": "http://specs.openid.net/auth/2.0",
         "openid.identity": "http://specs.openid.net/auth/2.0/identifier_select",
         "openid.claimed_id": "http://specs.openid.net/auth/2.0/identifier_select",
         "openid.mode": "checkid_setup",
-        "openid.return_to": f"http://localhost:5173/steam/callback?user_id={user_id}",  # user_id를 포함하여 반환
-        "openid.realm": "http://localhost:5173/",  # not sure what it is
+        "openid.realm": "http://localhost:5173/",  # Realm은 API를 호출한 도메인
     }
+
+    # user_id가 있을 경우: 마이페이지로 리디렉션
+    if user_id:
+        params["openid.return_to"] = (
+            f"http://localhost:5173/steam/callback?user_id={user_id}"
+        )
+    # user_id가 없을 경우: 회원가입 페이지로 리디렉션
+    else:
+        params["openid.return_to"] = (
+            "http://localhost:5173/signup?from_steam=true"  # 회원가입 페이지로 리디렉션
+        )
+
     param_string = parse.urlencode(params)
     auth_url = steam_openid_url + "?" + param_string
     return JsonResponse({"auth_url": auth_url})
 
 
-@api_view(["GET"])
+@api_view(["POST"])
 def steam_callback(request):
-    steam_url = request.data["openid.claimed_id"]
-
+    body = json.loads(request.data["body"])
+    steam_id = body.get("steamId")
+    user_id = body.get("userId")
+    print(steam_id, user_id)
     # 'openid.claimed_id'가 존재하는 경우, 스팀 ID 추출
-    if steam_url:
-        steam_id = steam_url.split("/")[-1]  # URL에서 마지막 부분을 스팀 ID로 처리
-        user_id = request.data["user_id"]
-
+    if steam_id and user_id:
         try:
             account = Account.objects.get(user_id=user_id)
             account.steamId = steam_id
             account.save()
 
-            return JsonResponse({"message": "Steam ID linked successfully!"})
+            return JsonResponse(
+                {
+                    "message": "Steam ID linked successfully!",
+                    "data": {"user_id": account.id},
+                }
+            )
         except Account.DoesNotExist:
             return JsonResponse({"error": "Account not found"}, status=404)
     return JsonResponse({"error": "Invalid method"}, status=405)
