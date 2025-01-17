@@ -1,7 +1,7 @@
 from rest_framework.decorators import api_view
 from rest_framework.views import APIView
 
-from .models import Account, AccountInterest, Interest, Block
+from .models import Account, AccountInterest, Interest, Block, Notice
 
 from .serializers import (
     AccountDeleteSerializer,
@@ -11,6 +11,7 @@ from .serializers import (
     LoginSerializer,
     SignupStep1Serializer,
     SignupStep2Serializer,
+    NoticeSerializer
 )
 from reviews.serializers import ReviewSerializer
 from rest_framework import status
@@ -517,3 +518,29 @@ class BlockedUserAPIView(APIView):
             return Response({"message": "차단된 유저가 아닙니다."}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response({"message": "유저 차단을 해제했습니다."}, status=status.HTTP_204_NO_CONTENT)
+
+
+class NoticeAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """사용자의 알림 목록 반환"""
+        notices = Notice.objects.filter(user_id=request.user).order_by('-created_at')
+        serializer = NoticeSerializer(notices, many=True)
+        return Response(serializer.data)
+
+    def delete(self, request):
+        """읽은 알림 삭제"""
+        Notice.objects.filter(user_id=request.user, is_read=True).delete()
+        return Response({"message": "확인한 알림은 삭제됩니다."}, status=status.HTTP_204_NO_CONTENT)
+
+
+class NoticeDetailAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, notice_id):
+        """알림 읽음 처리"""
+        notice = get_object_or_404(Notice, id=notice_id, user_id=request.user)
+        notice.is_read = True
+        notice.save()
+        return Response({"message": "알림이 읽음 처리되었습니다."}, status=status.HTTP_200_OK)
