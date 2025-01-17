@@ -30,4 +30,6 @@ urlpatterns = [
     path("interest/", views.interest, name="interest"),
     path("profile/", views.profile, name="profile"),
     path("steam_profile/", views.steam_profile, name="steam_profile"),
+    path("steam_login/", views.steam_login, name="steam_login"),
+    path("steam_callback/", views.steam_callback, name="steam_callback"),
 ]
