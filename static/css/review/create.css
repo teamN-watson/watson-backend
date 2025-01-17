@@ -1,0 +1,15 @@
+.rCreateContainer {
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    flex-direction: column;
+    gap: 20px;
+    margin-top: 50px;
+}
+
+.createForm {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 500px;
+}

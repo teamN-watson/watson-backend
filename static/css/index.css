@@ -1,0 +1,12 @@
+/* section.banner */
+section.banner {
+
+}
+
+section.banner > div {
+    /* width: 100%; */
+    margin-top: 50px;
+}
+section.banner > div > img{
+    width: 100%;
+}
