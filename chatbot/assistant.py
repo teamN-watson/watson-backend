@@ -101,9 +101,9 @@ class Assistant():
     @classmethod
     def from_env(cls):
         """
-            환경 변수에서 설정을 로드하여 인스턴스를 생성하는 클래스 메서드
-            이 방식을 사용하면 설정을 코드와 분리하여 관리할 수 있음
-            """
+        환경 변수에서 설정을 로드하여 인스턴스를 생성하는 클래스 메서드
+        이 방식을 사용하면 설정을 코드와 분리하여 관리할 수 있음
+        """
         config = AssistantConfig(
             steam_api_key=os.getenv("STEAM_API_KEY",""),
             llm_model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),  # 기본 모델 지정
@@ -356,31 +356,19 @@ class Assistant():
                 descriptors = [tag.text.strip() for tag in app_tags]
                 tags = Tag.objects.filter(name_en__in=descriptors).values_list('steam_tag_id', flat=True)
                 return tags
+            
 
-    def search_tag(self, request, query):
+    def get_tagid(self, request):
         """
-        실제 검색하고자 하는 태그 추출 (관심사, 스팀 데이터 반영)
+        사용자의 관심사 + 리뷰 + 플레이 타임 게임 태그 가져오는 함수
         """
-        tags = list(Tag.objects.values("name_ko", "steam_tag_id"))
-
-        # LLM 호출
-        input_tag = self.inputchain.invoke({
-            "user_input": query,
-            "tags": tags
-        })
-
-        # 미성년자의 경우 검색어 필터링
-        if request.user.age < 20:
-            if any(tag in input_tag for tag in self.restrict_id):
-                return self.config.restrict_message
-
-        def get_interest(request):
+        def get_interest(user_id):
             """
             관심사 가져오기 - interest_id 별로 그룹화된 Tag 결과 반환
             """
             # AccountInterest에서 사용자의 interest_id 가져오기
             interest_ids = AccountInterest.objects.filter(
-                account_id=request.user.id
+                account_id=user_id
             ).values_list('interest_id', flat=True)
 
             # InterestTag에서 각 interest_id에 연결된 tag_id 가져오기
@@ -409,29 +397,50 @@ class Assistant():
         if request.user.steamId:
             # 리뷰 쓴 유저일 때
             if SteamProfile.objects.filter(account_id=request.user.id, is_review=1).exists(): 
-                tag_id = get_interest(request)
+                tag_id = get_interest(request.user.id)
                 app_id = SteamReview.objects.filter(
                     account_id=request.user.id).values_list('app_id', flat=True)
                 for i in app_id:
                     game_tag = self.get_game_tag(i)
                     if game_tag:
-                        tag_id.append(game_tag)
+                        tag_id.append(list(game_tag))
             
             # 리뷰 안 썼지만 플레이 타임 정보 있는 유저일 때
             elif SteamProfile.objects.filter(account_id=request.user.id, is_playtime=1).exists(): 
-                tag_id = get_interest(request)
+                tag_id = get_interest(request.user.id)
                 app_id = SteamPlaytime.objects.filter(
                     account_id=request.user.id).values_list('app_id', flat=True)
                 for i in app_id:
                     game_tag = self.get_game_tag(i)
                     if game_tag:
-                        tag_id.append(game_tag)
+                        tag_id.append(list(game_tag))
             else:
-                tag_id = get_interest(request)
+                tag_id = get_interest(request.user.id)
         else:
-            tag_id = get_interest(request)
+            tag_id = get_interest(request.user.id)
+        return tag_id
+    
+
+    def search_tag(self, request, query):
+        """
+        실제 검색하고자 하는 태그 추출 (관심사, 스팀 데이터 반영)
+        """
+        tags = list(Tag.objects.values("name_ko", "steam_tag_id"))
+
+        # LLM 호출
+        input_tag = self.inputchain.invoke({
+            "user_input": query,
+            "tags": tags
+        })
+
+        # 미성년자의 경우 검색어 필터링
+        if request.user.age < 20:
+            if any(tag in input_tag for tag in self.restrict_id):
+                return self.config.restrict_message
 
         tags = []
+        tag_id = self.get_tagid(request)
+        
         for group in tag_id:
             # 각 그룹(tag_id 리스트)별로 쿼리 실행
             tag_group = list(Tag.objects.filter(steam_tag_id__in=group).values(
@@ -447,12 +456,11 @@ class Assistant():
         })
         
         if found_tag:
-            return input_tag, list(set(input_tag + found_tag))
+            return list(input_tag), list(set(input_tag + found_tag))
         else:
-            return input_tag, input_tag
+            return list(input_tag), list(input_tag)
 
-
-    def search_filter(self, request, tags, input_tag):
+    def search_filter(self, request, tags, input_tag, user_game):
         """
         태그를 통한 게임 검색 진행
         """
@@ -491,28 +499,12 @@ class Assistant():
             if not tagids or not appid:
                 continue
 
-            # 사용자 입력과 크게 연관 없을 때 예비 용으로 저장 후 일단 스킵
-            if not any(tag in json.loads(tagids) for tag in input_tag):
-                sub_link.append(link)
-                continue
-
-            # 미성년자일 때 검색 결과 필터링
-            if request.user.age < 20:   
-                if not any(tag in json.loads(tagids) for tag in self.restrict_id):
-                    app_ids.append(appid) 
-                    count += 1
-            else:
-                app_ids.append(appid)
-                count += 1
-            
-            # 수집된 결과 3개 채워졌으면 반복문 탈출
-            if count == 3:
-                break
-
-        if count < 3:
-            for link in sub_link: 
-                tagids = link.get('data-ds-tagids')
-                appid = link.get('data-ds-appid')
+            # 사용자가 플레이 했던 게임은 제외
+            if appid not in user_game:
+                # 사용자 입력과 크게 연관 없을 때 예비 용으로 저장 후 일단 스킵
+                if not any(tag in json.loads(tagids) for tag in input_tag):
+                    sub_link.append(link)
+                    continue
 
                 # 미성년자일 때 검색 결과 필터링
                 if request.user.age < 20:   
@@ -526,6 +518,26 @@ class Assistant():
                 # 수집된 결과 3개 채워졌으면 반복문 탈출
                 if count == 3:
                     break
+
+        if count < 3:
+            for link in sub_link: 
+                tagids = link.get('data-ds-tagids')
+                appid = link.get('data-ds-appid')
+
+                # 사용자가 플레이 했던 게임은 제외
+                if appid not in user_game:
+                    # 미성년자일 때 검색 결과 필터링
+                    if request.user.age < 20:   
+                        if not any(tag in json.loads(tagids) for tag in self.restrict_id):
+                            app_ids.append(appid) 
+                            count += 1
+                    else:
+                        app_ids.append(appid)
+                        count += 1
+                    
+                    # 수집된 결과 3개 채워졌으면 반복문 탈출
+                    if count == 3:
+                        break
         
         # app_id가 아무것도 모이지 않았을 때 안내 문구 반환
         if not app_ids:
@@ -592,7 +604,7 @@ class Assistant():
 
     def search_game_review(self, base_url, cursor):
         """
-        Steam API로 리뷰 데이터 수집 (유용한 순, 약 5달 이내, 최대 100개)
+        Steam API로 리뷰 데이터 수집 (유용한 순, 100일 이내, 최대 100개)
         """
         reviews = []
         for i in range(0,1):
@@ -626,8 +638,8 @@ class Assistant():
         긍정, 부정 별로 최근 유용한 리뷰 100개 요약 내용 추출하는 함수
         """
         cursor = 'cursor=*'
-        good_review_api = f"https://store.steampowered.com/appreviews/{appid}?json=1&filter=all&day_range=150&review_type=positive&num_per_page=100&{cursor}"
-        bad_review_api = f"https://store.steampowered.com/appreviews/{appid}?json=1&filter=all&day_range=150&review_type=negative&num_per_page=100&{cursor}"
+        good_review_api = f"https://store.steampowered.com/appreviews/{appid}?json=1&filter=all&day_range=100&review_type=positive&num_per_page=100&{cursor}"
+        bad_review_api = f"https://store.steampowered.com/appreviews/{appid}?json=1&filter=all&day_range=100&review_type=negative&num_per_page=100&{cursor}"
 
         good_review = self.search_game_review(good_review_api, cursor)
         bad_review = self.search_game_review(bad_review_api, cursor)
@@ -638,10 +650,28 @@ class Assistant():
         }
         return review
 
-        # LLM 호출
-        response = self.llm.invoke(messages)
 
-        return response.content
+    def find_game_id(self, request):
+        """
+        특정 계정에서 플레이 한 게임 아이디 가져오는 함수
+        """
+        # 스팀 연동된 유저인지 확인
+        if request.user.steamId:
+            # 리뷰 쓴 유저일 때
+            if SteamProfile.objects.filter(account_id=request.user.id, is_review=1).exists():
+                app_id = SteamReview.objects.filter(
+                    account_id=request.user.id).values_list('app_id', flat=True)
+            
+            # 리뷰 안 썼지만 플레이 타임 정보 있는 유저일 때
+            elif SteamProfile.objects.filter(account_id=request.user.id, is_playtime=1).exists(): 
+                app_id = SteamPlaytime.objects.filter(
+                    account_id=request.user.id).values_list('app_id', flat=True)
+                
+            else:
+                return []
+        else:
+            return []
+        return list(app_id)
 
 
     def search_game(self, request, query):
@@ -650,13 +680,15 @@ class Assistant():
         """
         # 사용자 입력으로부터 관련 태그 추출
         input_tag, search_tag = self.search_tag(request, query)
+
+        user_game = self.find_game_id(request)
         
         # 입력 내용 인식이 어렵거나 유저가 미성년자라 입력 내용이 부적절할 때 바로 안내 문구로 결과 출력
         if search_tag == self.config.not_result_message or search_tag == self.config.restrict_message:
             return {"message":search_tag}
 
         # 실제 검색에 사용할 게임 아이디 추출
-        search_game_id = self.search_filter(request, search_tag, input_tag)
+        search_game_id = self.search_filter(request, search_tag, input_tag, user_game)
 
         # 검색 결과로 아무런 게임이 없을 때 바로 안내 문구로 결과 출력
         if search_game_id == self.config.not_result_message or not search_game_id[0]:
