@@ -118,7 +118,7 @@ class FriendRequest(models.Model):
         related_name="my_friend_request",
     )
     friend_id = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    type = models.IntegerField(default=0)
+    type = models.IntegerField(default=0) # 0: 대기중, 1: 수락, -1: 거절
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

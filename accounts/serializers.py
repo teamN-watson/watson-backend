@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Account, Interest, Notice
+from .models import Account, Interest, Notice, FriendRequest
 from django.contrib.auth.hashers import make_password  # 비밀번호 해싱
 from django.core.validators import validate_email
 import re
@@ -284,3 +284,13 @@ class NoticeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notice
         fields = ['id', 'type', 'content', 'is_read', 'created_at', 'updated_at']
+
+
+class FriendRequestSerializer(serializers.ModelSerializer):
+    user_nickname = serializers.CharField(source="user_id.nickname", read_only=True)
+    friend_nickname = serializers.CharField(source="friend_id.nickname", read_only=True)
+
+    class Meta:
+        model = FriendRequest
+        fields = ["id", "user_id", "user_nickname", "friend_id", "friend_nickname", "type", "created_at"]
+        read_only_fields = ["id", "user_nickname", "friend_nickname", "created_at"]

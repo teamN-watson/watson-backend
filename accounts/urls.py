@@ -35,4 +35,6 @@ urlpatterns = [
     path("block/", views.BlockedUserAPIView.as_view(), name="block"),
     path("notice/", views.NoticeAPIView.as_view(), name="notice"),
     path("notice/<int:notice_id>/", views.NoticeDetailAPIView.as_view(), name="notice_detail"),
+    path("friend_request/", views.FriendRequestAPIView.as_view(), name="friend_request"),
+    path("friend/", views.FriendAPIView.as_view(), name="friend"),
 ]
