@@ -1,7 +1,14 @@
 from rest_framework.decorators import api_view
 from rest_framework.views import APIView
 
-from .models import Account, AccountInterest, Interest, Block, Notice
+from .models import (Account, 
+                    AccountInterest, 
+                    Interest, 
+                    Block, 
+                    Notice,
+                    FriendRequest,
+                    Friend,
+                    )
 
 from .serializers import (
     AccountDeleteSerializer,
@@ -544,3 +551,88 @@ class NoticeDetailAPIView(APIView):
         notice.is_read = True
         notice.save()
         return Response({"message": "알림이 읽음 처리되었습니다."}, status=status.HTTP_200_OK)
+    
+
+class FriendRequestAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """사용자가 받은 친구 요청 목록 반환"""
+        friend_requests = FriendRequest.objects.filter(friend_id=request.user, type=0)  # 대기 중 상태만
+        serializer = serializers.FriendRequestSerializer(friend_requests, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        """친구 요청 생성"""
+        friend_id = request.data.get("friend_id")
+        friend = get_object_or_404(Account, id=friend_id)
+
+        if friend == request.user:
+            return Response({"message": "본인에게 친구 요청을 보낼 수 없습니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 이미 친구인 경우
+        if Friend.objects.filter(user_id=request.user, friend_id=friend).exists():
+            return Response({"message": "이미 친구입니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 새로운 요청 생성
+        friend_request, created = FriendRequest.objects.get_or_create(
+            user_id=request.user, friend_id=friend,
+            defaults={"type": 0}  # 대기 상태로 생성
+        )
+
+        if not created:
+            return Response({"message": "이미 대기 중인 친구 요청이 있습니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = serializers.FriendRequestSerializer(friend_request)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def put(self, request):
+        """친구 요청 상태 변경 (수락/거절)"""
+        friend_request_id = request.data.get("friend_request_id")
+        new_type = request.data.get("type")  # 1: 수락, -1: 거절
+
+        if new_type not in [1, -1]:
+            return Response({"message": "유효하지 않은 상태 값입니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 요청 객체 가져오기
+        friend_request = get_object_or_404(FriendRequest, id=friend_request_id, friend_id=request.user)
+
+        if new_type == 1:  # 수락 상태
+            # 친구 관계 생성
+            Friend.objects.create(user_id=request.user, friend_id=friend_request.user_id)
+            Friend.objects.create(user_id=friend_request.user_id, friend_id=request.user)
+            # 요청 삭제
+            friend_request.delete()
+            return Response({"message": "친구 요청을 수락하고 친구 관계가 생성되었습니다."}, status=status.HTTP_200_OK)
+
+        if new_type == -1:  # 거절 상태
+            # 요청 삭제
+            friend_request.delete()
+            return Response({"message": "친구 요청을 거절하고 삭제했습니다."}, status=status.HTTP_204_NO_CONTENT)
+        
+class FriendAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """친구 목록 조회"""
+        friends = Friend.objects.filter(user_id=request.user).select_related('friend_id')
+        data = [
+            {
+                "id": friend.friend_id.id,
+                "nickname": friend.friend_id.nickname,
+                "photo": friend.friend_id.photo.url if friend.friend_id.photo else None,
+            }
+            for friend in friends
+        ]
+        return Response(data, status=status.HTTP_200_OK)
+
+    def delete(self, request):
+        """친구 삭제"""
+        friend_id = request.data.get("friend_id")
+        friend = get_object_or_404(Friend, user_id=request.user, friend_id=friend_id)
+
+        # 친구 관계 삭제 (양방향)
+        Friend.objects.filter(user_id=request.user, friend_id=friend_id).delete()
+        Friend.objects.filter(user_id=friend_id, friend_id=request.user).delete()
+
+        return Response({"message": "친구가 삭제되었습니다."}, status=status.HTTP_204_NO_CONTENT)
