@@ -5,8 +5,10 @@ from rest_framework import status
 from chatbot.models import Conversation, Message
 from chatbot.serializers import MessageSerializer
 from chatbot.assistant import Assistant
+from chatbot.collaborate import Collaborations_Assistant
 from django.shortcuts import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
+from accounts.models import Account
 
 class ChatbotRecordAPIView(APIView):
     """
@@ -76,6 +78,7 @@ class ChatbotAPIView(APIView):
         챗봇 응답 요청 및 대화 내역 저장
         """
         message = request.data.get("message", "")
+        user_count = Account.objects.count()
 
         # 1) Conversation 객체 가져오기
         conversation = Conversation.objects.filter(account_id=request.user.id).first()
@@ -94,7 +97,14 @@ class ChatbotAPIView(APIView):
 
         # 3) 챗봇 응답 메시지 저장
         # 3-1) 챗봇 모델 생성
-        assistant = Assistant.from_env()
+        # 유저 수에 따라 방법 달라짐 (하이브리드 필터링)
+        if user_count >= 30:
+            # 유저 30명 이상 : 협업 필터링
+            assistant = Collaborations_Assistant.from_env()
+        else:
+            # 유저 30명 미만 : 콘텐츠 기반 필터링
+            assistant = Assistant.from_env()
+
         bot_message = {
             "conversation": conversation.id,
             "content": assistant.process_query(request, message),
@@ -150,3 +160,4 @@ class DeleteChatbotRecordAPIView(APIView):
 
         # 응답 반환 (필요 시)
         return Response({"message": "메시지가 정상적으로 삭제되었습니다."}, status=200)
+    
