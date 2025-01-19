@@ -50,7 +50,7 @@ class ReviewLikeSerializer(serializers.ModelSerializer):
 class ReviewSerializer(serializers.ModelSerializer):
     """Review 모델 직렬화"""
     nickname = serializers.SerializerMethodField()  # 사용자 닉네임 반환
-    content = serializers.SerializerMethodField()  # 콘텐츠 반환 (블러 처리 포함)
+    content_display = serializers.SerializerMethodField()  # 차단된 사용자 콘텐츠 처리
     comments = ReviewCommentSerializer(many=True, read_only=True)  # 연결된 댓글들
     total_likes = serializers.IntegerField(read_only=True)  # annotate로 계산된 값
     total_dislikes = serializers.IntegerField(read_only=True)  # annotate로 계산된 값
@@ -61,18 +61,18 @@ class ReviewSerializer(serializers.ModelSerializer):
     class Meta:
         model = Review
         fields = [
-            'id', 'user', 'nickname', 'content', 'app_id', 'game_name', 'header_image', 'score', 'categories',
+            'id', 'user', 'nickname', 'content', 'content_display', 'app_id', 'game_name', 'header_image', 'score', 'categories',
             'created_at', 'updated_at', 'comments', 'total_likes', 'total_dislikes'
         ]
         read_only_fields = [
-            'id', 'created_at', 'updated_at', 'comments', 'total_likes', 'total_dislikes', 'game_name', 'header_image', 'categories'
+            'id', 'created_at', 'updated_at', 'comments', 'total_likes', 'total_dislikes', 'game_name', 'header_image', 'categories', 'content_display'
         ]
 
     def get_nickname(self, obj):
         """유저 닉네임 반환 (유저가 없으면 '알수없음')"""
         return obj.user.nickname if obj.user else "알수없음"
 
-    def get_content(self, obj):
+    def get_content_display(self, obj):
         blocked_users = self.context.get('blocked_users', [])
         if obj.user and obj.user.id in blocked_users:
             return "이 사용자의 리뷰는 차단되어 표시되지 않습니다."
