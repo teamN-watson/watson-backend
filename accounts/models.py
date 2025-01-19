@@ -104,7 +104,17 @@ class Notice(models.Model):
     user_id = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="accounts"
     )
-    type = models.IntegerField(default=0)
+    TYPE_GENERAL = 1
+    TYPE_FRIEND_REQUEST = 2
+    TYPE_COMMENT = 3
+
+    TYPE_CHOICES = [
+        (TYPE_GENERAL, "일반 알림"),
+        (TYPE_FRIEND_REQUEST, "친구 요청 알림"),
+        (TYPE_COMMENT, "댓글 알림"),
+    ]
+
+    type = models.IntegerField(choices=TYPE_CHOICES, default=0)
     content = models.CharField(max_length=50)
     is_read = models.BooleanField(default=False) # 읽음 여부
     created_at = models.DateTimeField(auto_now_add=True)
