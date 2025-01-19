@@ -564,6 +564,13 @@ class FriendRequestAPIView(APIView):
 
         if not created:
             return Response({"message": "이미 대기 중인 친구 요청이 있습니다."}, status=status.HTTP_400_BAD_REQUEST)
+    
+        # 알림 생성
+        Notice.objects.create(
+            user_id=friend,
+            type=Notice.TYPE_FRIEND_REQUEST,  # 친구 요청 알림 타입 (2)
+            content=f"{request.user.nickname}님이 친구 요청을 보냈습니다."
+        )
 
         serializer = serializers.FriendRequestSerializer(friend_request)
         return Response(serializer.data, status=status.HTTP_201_CREATED)

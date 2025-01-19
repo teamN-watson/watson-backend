@@ -188,7 +188,7 @@ class ReviewCommentAPIView(APIView):
             if review.user and review.user != request.user:  # 본인이 작성한 리뷰에 댓글을 단 경우 제외
                 Notice.objects.create(
                     user_id=review.user,
-                    type=1,  # 댓글 알림
+                    type=Notice.TYPE_COMMENT,  # 댓글 알림 타입 (3)
                     content=f"{request.user.nickname}님이 '{review.content[:20]}...'에 댓글을 남겼습니다."
                 )
 
