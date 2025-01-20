@@ -238,10 +238,15 @@ class AccountUpdateSerializer(serializers.ModelSerializer):
         error_messages={
             "required": "이메일 값은 필수입니다.",
             "invalid": "올바른 이메일 형식으로 입력해주세요.",
+            "blank": "이메일을 입력해주세요.",
         },
     )
     nickname = serializers.CharField(
-        required=True, error_messages={"required": "닉네임은 입력은 필수입니다."}
+        required=True,
+        error_messages={
+            "required": "닉네임은 입력은 필수입니다.",
+            "blank": "닉네임을 입력해주세요.",
+        },
     )
     age = serializers.IntegerField(
         required=True,
