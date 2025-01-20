@@ -244,7 +244,12 @@ class AccountUpdateSerializer(serializers.ModelSerializer):
         required=True, error_messages={"required": "닉네임은 입력은 필수입니다."}
     )
     age = serializers.IntegerField(
-        required=True, error_messages={"required": "나이 입력은 필수입니다."}
+        required=True,
+        error_messages={
+            "required": "나이 입력은 필수입니다.",
+            "invalid": "올바른 나이를 입력해주세요.",
+            "blank": "나이를 입력해주세요.",
+        },
     )
 
     class Meta:
@@ -283,7 +288,7 @@ class InterestSerializer(serializers.ModelSerializer):
 class NoticeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notice
-        fields = ['id', 'type', 'content', 'is_read', 'created_at', 'updated_at']
+        fields = ["id", "type", "content", "is_read", "created_at", "updated_at"]
 
 
 class FriendRequestSerializer(serializers.ModelSerializer):
@@ -292,5 +297,13 @@ class FriendRequestSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = FriendRequest
-        fields = ["id", "user_id", "user_nickname", "friend_id", "friend_nickname", "type", "created_at"]
+        fields = [
+            "id",
+            "user_id",
+            "user_nickname",
+            "friend_id",
+            "friend_nickname",
+            "type",
+            "created_at",
+        ]
         read_only_fields = ["id", "user_nickname", "friend_nickname", "created_at"]
