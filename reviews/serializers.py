@@ -95,3 +95,11 @@ class GameSerializer(serializers.ModelSerializer):
     class Meta:
         model = Game
         fields = ['appID', 'name', 'header_image', 'genres', 'supported_languages']
+
+class GameSearchSerializer(serializers.ModelSerializer):
+    """
+    리뷰 작성에 필요한 Game 모델 검색용 직렬화
+    """
+    class Meta:
+        model = Game
+        fields = ['appID', 'name']  # 검색에 필요한 필드만 포함
