@@ -501,8 +501,8 @@ class Collaborations_Assistant():
             if not tagids or not appid:
                 continue
 
-            # 사용자가 플레이 했던 게임은 제외
-            if appid not in user_game:
+            # 사용자가 플레이 했던 게임, 이미 검색된 게임은 제외
+            if appid not in user_game and appid not in app_ids:
                 # 사용자 입력과 크게 연관 없을 때 예비 용으로 저장 후 일단 스킵
                 if not any(tag in json.loads(tagids) for tag in input_tag):
                     sub_link.append(link)
@@ -795,7 +795,7 @@ class Collaborations_Assistant():
             for game_id in similar_user_game:
                 game_tag_id = self.get_game_tag(game_id)
                 # 가장 비슷한 유저의 게임 중 본인이 원하는 종류의 게임 추출
-                if any(tag in game_tag_id for tag in input_tag):
+                if all(tag in game_tag_id for tag in input_tag):
                     # 미성년자의 경우 게임 필터링
                     if request.user.age < 20:
                         if not any(tag in game_tag_id[0:7] for tag in self.restrict_id):
@@ -851,16 +851,14 @@ class Collaborations_Assistant():
 
         return game_information
 
-
     def search_game_info(self, request, query):
         """
         특정 게임에 대한 정보 원할 시 결과 추출
         """
-        
         # 모델에서 제대로 키워드를 추출하지 못했을 경우 안내 문장 반환
         if not query:
-            return {"message":self.config.not_result_message}
-        
+            return {"message": self.config.not_result_message}
+
         def search_game_name(query):
             """
             추출된 게임 이름으로 가장 먼저 검색되는 게임 아이디 추출
@@ -881,8 +879,9 @@ class Collaborations_Assistant():
             container = soup.find('div', id='search_resultsRows')
 
             # 'search_resultsRows' 안에 있는 직계 <a> 태그 최대 10개 가져오기
-            links = container.find_all('a', recursive=False, limit=10) if container else []
-            
+            links = container.find_all(
+                'a', recursive=False, limit=10) if container else []
+
             # 결과 아무것도 없으면 바로 안내 문구 반환
             if not links:
                 return self.config.not_find_message
@@ -890,7 +889,7 @@ class Collaborations_Assistant():
             # 각 <a> 태그에서 data-ds-appid 속성 추출
             app_ids = []
             count = 0
-            for link in links: 
+            for link in links:
                 appid = link.get('data-ds-appid')
 
                 # 번들과 같이 appid가 없는 대상일 경우 스킵
@@ -900,20 +899,20 @@ class Collaborations_Assistant():
                 # 미성년자일 때 검색 결과 필터링
                 if request.user.age < 20:
                     tagids = link.get('data-ds-tagids')
-                    
+
                     # 인기 태그 정보 없을 때 스킵
                     if not tagids:
                         continue
 
                     if not any(tag in json.loads(tagids) for tag in self.restrict_id):
-                        app_ids.append(appid) 
+                        app_ids.append(appid)
                         count += 1
                     else:
                         return self.config.restrict_message
                 else:
                     app_ids.append(appid)
                     count += 1
-                
+
                 # 수집된 결과 1개 채워졌으면 반복문 탈출
                 if count == 1:
                     break
@@ -921,27 +920,32 @@ class Collaborations_Assistant():
             # app_id가 아무것도 모이지 않았을 때 안내 문구 반환
             if not app_ids:
                 return self.config.not_find_message
-            
             return app_ids
 
         # 사용자가 검색하고자 하는 게임의 id 추출
         game_id = search_game_name(query)
-        
+
         if game_id == self.config.not_find_message or game_id == self.config.restrict_message:
             return {"message": game_id}
 
         # 게임 설명 요약 정보
         game_information = {"message": "검색하신 게임에 대한 정보입니다. 😸", "game_data": []}
-        game_info, game_data = self.get_game_info(game_id)
-        game_review = self.get_game_review(game_id)
-        game_summary = self.get_summary(game_info, game_review)
+        if game_id[0]:
+            game_info, game_data = self.get_game_info(game_id[0])
+            game_review = self.get_game_review(game_id[0])
+            # LLM 호출
+            game_summary = self.summarychain.invoke({
+                "short_inform": game_info['short_inform'],
+                "long_inform": game_info['long_inform'],
+                "good_review": game_review['good_review'],
+                "bad_review": game_review['bad_review']
+            })
 
-        if game_summary:
-            game_summary = json.loads(game_summary)
-            game_data['description'] = game_summary['description']
-            game_data['good_review'] = game_summary['good_review']
-            game_data['bad_review'] = game_summary['bad_review']
-            game_information["game_data"].append(game_data)
+            if game_summary:
+                game_data['description'] = game_summary['description']
+                game_data['good_review'] = game_summary['good_review']
+                game_data['bad_review'] = game_summary['bad_review']
+                game_information["game_data"].append(game_data)
 
         return game_information
 
