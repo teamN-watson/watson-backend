@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.shortcuts import get_object_or_404
 from .models import Review, ReviewComment, ReviewLike, ReviewCommentLike
-from .serializers import ReviewSerializer, ReviewCommentSerializer, ReviewLikeSerializer, ReviewCommentLikeSerializer, GameSerializer
+from .serializers import ReviewSerializer, ReviewCommentSerializer, ReviewLikeSerializer, ReviewCommentLikeSerializer, GameSerializer, GameSearchSerializer
 from django.db.models import Count
 from accounts.models import Game, Block, Notice
 
@@ -332,3 +332,20 @@ class GameDetailAPIView(APIView):
             "my_review": my_review_serializer.data if my_review else None,
             "reviews": other_reviews_serializer.data
         })
+    
+class GameSearchAPIView(APIView):
+    """
+    검색 API
+    """
+    def get(self, request, *args, **kwargs):
+        query = request.query_params.get('q', '').strip()
+        if not query:
+            return Response({"detail": "검색어를 입력하세요."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # 게임 이름에 검색어가 포함된 데이터 필터링
+        games = Game.objects.filter(name__icontains=query)
+        if not games.exists():
+            return Response({"detail": "검색 결과가 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = GameSearchSerializer(games, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
