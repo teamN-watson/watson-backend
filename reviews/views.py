@@ -16,6 +16,8 @@ from .serializers import (
 from django.db.models import Count
 from accounts.models import Game, Block, Notice
 from django.db.models import Case, When, Value, IntegerField
+from django.core.paginator import Paginator
+from django.http import JsonResponse
 
 
 class ReviewAPIView(APIView):
@@ -427,6 +429,8 @@ class GameSearchAPIView(APIView):
 
     def get(self, request, *args, **kwargs):
         query = request.query_params.get("q", "").strip()
+        page = request.query_params.get("page", 1)  # 현재 페이지 (기본값 1)
+
         if not query:
             return Response(
                 {"detail": "검색어를 입력하세요."}, status=status.HTTP_400_BAD_REQUEST
@@ -445,10 +449,35 @@ class GameSearchAPIView(APIView):
             )
             .order_by("priority", "name")
         )  # 우선순위와 이름으로 정렬
+        paginator = Paginator(games, 10)  # 페이지당 10개씩 표시
+
+        # 현재 페이지 데이터 가져오기
+        try:
+            page_obj = paginator.page(page)
+        except Exception as e:
+            Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         if not games.exists():
             return Response(
                 {"detail": "검색 결과가 없습니다."}, status=status.HTTP_404_NOT_FOUND
             )
 
-        serializer = GameSearchSerializer(games, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        # serializer = GameSearchSerializer(games, many=True)
+        return Response(
+            {
+                "games": [
+                    {
+                        "appID": game.appID,
+                        "name": game.name,
+                        "header_image": game.header_image,
+                    }
+                    for game in page_obj
+                ],
+                "has_next": page_obj.has_next(),  # 다음 페이지 존재 여부
+                "current_page": page_obj.number,
+            },
+            status=status.HTTP_200_OK,
+        )
