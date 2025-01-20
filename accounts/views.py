@@ -1,14 +1,15 @@
 from rest_framework.decorators import api_view
 from rest_framework.views import APIView
 
-from .models import (Account, 
-                    AccountInterest, 
-                    Interest, 
-                    Block, 
-                    Notice,
-                    FriendRequest,
-                    Friend,
-                    )
+from .models import (
+    Account,
+    AccountInterest,
+    Interest,
+    Block,
+    Notice,
+    FriendRequest,
+    Friend,
+)
 
 from .serializers import (
     AccountDeleteSerializer,
@@ -18,7 +19,7 @@ from .serializers import (
     LoginSerializer,
     SignupStep1Serializer,
     SignupStep2Serializer,
-    NoticeSerializer
+    NoticeSerializer,
 )
 from reviews.serializers import ReviewSerializer
 from rest_framework import status
@@ -121,9 +122,13 @@ def signin(request):
                 "refresh_token": str(refresh),
                 "access_token": str(refresh.access_token),
                 "user": {
+                    "id": user.id,
                     "user_id": user.user_id,
                     "email": user.email,
                     "nickname": user.nickname,
+                    "age": user.age,
+                    "photo": user.photo.url if user.photo else "",
+                    "steamId": user.steamId,
                 },
                 # "token": token.key,
             },
@@ -419,7 +424,6 @@ def steam_profile(request):
         return Response({"message": "Invalid request."}, status=400)
 
 
-
 @api_view(["GET"])
 def steam_login(request):
     user_id = request.query_params.get("user_id")
@@ -478,15 +482,20 @@ class BlockedUserAPIView(APIView):
     """
     차단된 유저 관련 API 뷰
     """
+
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         """차단된 유저 목록 반환"""
-        blocked_users = Block.objects.filter(blocker=request.user).select_related('blocked_user')
+        blocked_users = Block.objects.filter(blocker=request.user).select_related(
+            "blocked_user"
+        )
 
         # 차단된 유저가 없을 때의 응답 처리
         if not blocked_users.exists():
-            return Response({"message": "차단한 유저가 없습니다."}, status=status.HTTP_200_OK)
+            return Response(
+                {"message": "차단한 유저가 없습니다."}, status=status.HTTP_200_OK
+            )
 
         # 차단된 유저가 있을 때의 응답 처리
         data = [
@@ -497,7 +506,7 @@ class BlockedUserAPIView(APIView):
             for block in blocked_users
         ]
         return Response(data, status=status.HTTP_200_OK)
-    
+
     def post(self, request):
         """유저 차단"""
         blocked_user_id = request.data.get("blocked_user_id")
@@ -505,14 +514,24 @@ class BlockedUserAPIView(APIView):
 
         # 본인이 본인을 차단하려는 경우 방지
         if blocked_user == request.user:
-            return Response({"message": "본인을 차단할 수 없습니다."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"message": "본인을 차단할 수 없습니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         # 차단 생성
-        block, created = Block.objects.get_or_create(blocker=request.user, blocked_user=blocked_user)
+        block, created = Block.objects.get_or_create(
+            blocker=request.user, blocked_user=blocked_user
+        )
         if not created:
-            return Response({"message": "이미 차단된 사용자입니다."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"message": "이미 차단된 사용자입니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        return Response({"message": "유저를 차단했습니다."}, status=status.HTTP_201_CREATED)
+        return Response(
+            {"message": "유저를 차단했습니다."}, status=status.HTTP_201_CREATED
+        )
 
     def delete(self, request):
         """유저 차단 해제"""
@@ -520,11 +539,18 @@ class BlockedUserAPIView(APIView):
         blocked_user = get_object_or_404(Account, id=blocked_user_id)
 
         # 차단 해제
-        deleted, _ = Block.objects.filter(blocker=request.user, blocked_user=blocked_user).delete()
+        deleted, _ = Block.objects.filter(
+            blocker=request.user, blocked_user=blocked_user
+        ).delete()
         if not deleted:
-            return Response({"message": "차단된 유저가 아닙니다."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"message": "차단된 유저가 아닙니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        return Response({"message": "유저 차단을 해제했습니다."}, status=status.HTTP_204_NO_CONTENT)
+        return Response(
+            {"message": "유저 차단을 해제했습니다."}, status=status.HTTP_204_NO_CONTENT
+        )
 
 
 class NoticeAPIView(APIView):
@@ -532,14 +558,16 @@ class NoticeAPIView(APIView):
 
     def get(self, request):
         """사용자의 알림 목록 반환"""
-        notices = Notice.objects.filter(user_id=request.user).order_by('-created_at')
+        notices = Notice.objects.filter(user_id=request.user).order_by("-created_at")
         serializer = NoticeSerializer(notices, many=True)
         return Response(serializer.data)
 
     def delete(self, request):
         """읽은 알림 삭제"""
         Notice.objects.filter(user_id=request.user, is_read=True).delete()
-        return Response({"message": "확인한 알림은 삭제됩니다."}, status=status.HTTP_204_NO_CONTENT)
+        return Response(
+            {"message": "확인한 알림은 삭제됩니다."}, status=status.HTTP_204_NO_CONTENT
+        )
 
 
 class NoticeDetailAPIView(APIView):
@@ -550,15 +578,19 @@ class NoticeDetailAPIView(APIView):
         notice = get_object_or_404(Notice, id=notice_id, user_id=request.user)
         notice.is_read = True
         notice.save()
-        return Response({"message": "알림이 읽음 처리되었습니다."}, status=status.HTTP_200_OK)
-    
+        return Response(
+            {"message": "알림이 읽음 처리되었습니다."}, status=status.HTTP_200_OK
+        )
+
 
 class FriendRequestAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         """사용자가 받은 친구 요청 목록 반환"""
-        friend_requests = FriendRequest.objects.filter(friend_id=request.user, type=0)  # 대기 중 상태만
+        friend_requests = FriendRequest.objects.filter(
+            friend_id=request.user, type=0
+        )  # 대기 중 상태만
         serializer = serializers.FriendRequestSerializer(friend_requests, many=True)
         return Response(serializer.data)
 
@@ -568,26 +600,35 @@ class FriendRequestAPIView(APIView):
         friend = get_object_or_404(Account, id=friend_id)
 
         if friend == request.user:
-            return Response({"message": "본인에게 친구 요청을 보낼 수 없습니다."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"message": "본인에게 친구 요청을 보낼 수 없습니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         # 이미 친구인 경우
         if Friend.objects.filter(user_id=request.user, friend_id=friend).exists():
-            return Response({"message": "이미 친구입니다."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"message": "이미 친구입니다."}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         # 새로운 요청 생성
         friend_request, created = FriendRequest.objects.get_or_create(
-            user_id=request.user, friend_id=friend,
-            defaults={"type": 0}  # 대기 상태로 생성
+            user_id=request.user,
+            friend_id=friend,
+            defaults={"type": 0},  # 대기 상태로 생성
         )
 
         if not created:
-            return Response({"message": "이미 대기 중인 친구 요청이 있습니다."}, status=status.HTTP_400_BAD_REQUEST)
-    
+            return Response(
+                {"message": "이미 대기 중인 친구 요청이 있습니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         # 알림 생성
         Notice.objects.create(
             user_id=friend,
             type=Notice.TYPE_FRIEND_REQUEST,  # 친구 요청 알림 타입 (2)
-            content=f"{request.user.nickname}님이 친구 요청을 보냈습니다."
+            content=f"{request.user.nickname}님이 친구 요청을 보냈습니다.",
         )
 
         serializer = serializers.FriendRequestSerializer(friend_request)
@@ -599,30 +640,48 @@ class FriendRequestAPIView(APIView):
         new_type = request.data.get("type")  # 1: 수락, -1: 거절
 
         if new_type not in [1, -1]:
-            return Response({"message": "유효하지 않은 상태 값입니다."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"message": "유효하지 않은 상태 값입니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         # 요청 객체 가져오기
-        friend_request = get_object_or_404(FriendRequest, id=friend_request_id, friend_id=request.user)
+        friend_request = get_object_or_404(
+            FriendRequest, id=friend_request_id, friend_id=request.user
+        )
 
         if new_type == 1:  # 수락 상태
             # 친구 관계 생성
-            Friend.objects.create(user_id=request.user, friend_id=friend_request.user_id)
-            Friend.objects.create(user_id=friend_request.user_id, friend_id=request.user)
+            Friend.objects.create(
+                user_id=request.user, friend_id=friend_request.user_id
+            )
+            Friend.objects.create(
+                user_id=friend_request.user_id, friend_id=request.user
+            )
             # 요청 삭제
             friend_request.delete()
-            return Response({"message": "친구 요청을 수락하고 친구 관계가 생성되었습니다."}, status=status.HTTP_200_OK)
+            return Response(
+                {"message": "친구 요청을 수락하고 친구 관계가 생성되었습니다."},
+                status=status.HTTP_200_OK,
+            )
 
         if new_type == -1:  # 거절 상태
             # 요청 삭제
             friend_request.delete()
-            return Response({"message": "친구 요청을 거절하고 삭제했습니다."}, status=status.HTTP_204_NO_CONTENT)
-        
+            return Response(
+                {"message": "친구 요청을 거절하고 삭제했습니다."},
+                status=status.HTTP_204_NO_CONTENT,
+            )
+
+
 class FriendAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         """친구 목록 조회"""
-        friends = Friend.objects.filter(user_id=request.user).select_related('friend_id')
+        friends = Friend.objects.filter(user_id=request.user).select_related(
+            "friend_id"
+        )
         data = [
             {
                 "id": friend.friend_id.id,
@@ -642,4 +701,6 @@ class FriendAPIView(APIView):
         Friend.objects.filter(user_id=request.user, friend_id=friend_id).delete()
         Friend.objects.filter(user_id=friend_id, friend_id=request.user).delete()
 
-        return Response({"message": "친구가 삭제되었습니다."}, status=status.HTTP_204_NO_CONTENT)
+        return Response(
+            {"message": "친구가 삭제되었습니다."}, status=status.HTTP_204_NO_CONTENT
+        )
