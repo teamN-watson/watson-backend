@@ -1,6 +1,7 @@
 # Created by https://www.toptal.com/developers/gitignore/api/python,django
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,django
 
+
 ### Django ###
 *.log
 *.pot
@@ -133,3 +134,10 @@ cython_debug/
 
 # Let's Encrypt (Traefik)
 letsencrypt/
+
+SteamGamesDataset/*.csv
+SteamGamesDataset/*.json
+
+migrations
+
+.env

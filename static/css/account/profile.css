@@ -1,0 +1,108 @@
+.profileContainer {
+    display: flex;
+    flex-direction: column;
+    margin-top: 20px;
+}
+
+.profileContainer .profile_wrap#wrap1 {
+    display: flex;
+    justify-content: flex-start;
+    width: 100%;
+    margin: 0 auto;
+    gap: 40px;
+    padding: 20px;
+}
+.profileContainer .profile_wrap#wrap1 form {
+    display: flex;
+    justify-content: flex-start;
+    gap: 40px;
+}
+
+.profileContainer .user_photo_wrap {
+    gap: 20px;
+
+}
+.profileContainer .user_photo {
+    width: 200px;
+    min-width: 100px;
+    height: 200px;
+    min-height: 100px;
+}
+.profileContainer .user_photo img{
+    width: 100%;
+    height: 100%;
+    border: 1px solid black;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+input#id_photo {
+    display: none;
+}
+
+.profileContainer .profile_wrap .user_info {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+.profileContainer .profile_wrap .user_info .info3 {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+
+}
+.profileContainer .profile_wrap .user_info .info_wrap {
+    display: flex;
+    margin-bottom: 10px;
+    align-items: center;
+}
+.profileContainer .profile_wrap .user_info .info_wrap h5{
+    width: 120px;
+}
+.profileContainer .profile_wrap .user_info .info_wrap p{
+    margin: 0;    
+    font-size: 14px;
+    text-align: right;
+}
+.profileContainer .profile_wrap .user_info input[type='text'] {
+    border-radius: 2px;
+    border: 1px solid rgb(221, 221, 221);
+    padding: 10px;
+    width: 250px;
+}
+
+.profileContainer .edit_wrap#wrap1 {
+    margin-top: 150px;
+    justify-content: center !important;
+}
+
+.profileContainer .edit_wrap .user_photo{
+    width: 300px;
+    height: 300px;
+}
+
+/* tabs */
+.tabWrap {
+    display: flex;
+    margin: 20px;
+    gap: 20px;
+}
+.tabWrap.product_profile{
+    display: none;
+}
+.tabWrap.product_profile+.card_wrap{
+    margin-top: 20px;
+}
+.tabWrap > div{
+    padding: 5px 10px;
+    border-radius: 5px;
+}
+.tabWrap div.active {
+    background-color: #ffe048;
+}
+.tabWrap > div > a{
+    color: #676767;
+}
+.tabWrap > div.active > a{
+    color: #856e29;
+}

@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>{{ review.title }}</h1>
+    <p>{{ review.content }}</p>
+    <p><strong>좋아요:</strong> {{ review.total_likes }} | <strong>비추천:</strong> {{ review.total_dislikes }}</p>
+    <p><strong>조회수:</strong> {{ review.view_count }}</p>
+    <p><strong>작성자:</strong> {{ review.user.username }}</p>
+    <hr>
+    {% if review.user == user %}
+        <a href="{% url 'reviews:review_edit' review.id %}">수정</a>
+        <a href="{% url 'reviews:review_delete' review.id %}">삭제</a>
+    {% endif %}
+{% endblock %}
