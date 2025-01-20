@@ -15,6 +15,7 @@ from fake_useragent import UserAgent
 from collections import defaultdict
 import json
 from django.test import RequestFactory
+import itertools
 
 
 
@@ -434,10 +435,14 @@ class Collaborations_Assistant():
             "tags": tags
         })
 
+        # 사용자 입력에서 태그 발견 못 할 시
+        if not input_tag:
+            return [], self.config.not_result_message
+
         # 미성년자의 경우 검색어 필터링
         if request.user.age < 20:
             if any(tag in input_tag for tag in self.restrict_id):
-                return self.config.restrict_message
+                return [], self.config.restrict_message
 
         tags = []
         tag_id = self.get_tagid(request)
@@ -566,10 +571,9 @@ class Collaborations_Assistant():
             tag_id = self.get_tagid(mock_request)
             
             # JSON에 넣을 형태 정의
-            # "tag_id" 키에 들어갈 리스트를 어떻게 구성할지는 실제 로직에 맞게 결정
             result_item = {
                 "user_id": user.id,
-                "tag_id": tag_id  # 예시로 합쳐서 저장
+                "tag_id": tag_id
             }
             results.append(result_item)
         return results
@@ -683,17 +687,18 @@ class Collaborations_Assistant():
     def find_similar_user(self, request):
         """
         유저와 가장 취향이 비슷한 유저의 아이디 추출
-        """
+        """       
         user_inform = self.get_all_users_tag()
-        request_user_inform = self.get_tagid(request)
 
-        # 2차원 리스트 -> 1차원 리스트로 평탄화
-        user_flattened_tags = []
-        for sublist in request_user_inform:
-            user_flattened_tags.extend(sublist)
+        # user_inform에서 request 유저 데이터 추출
+        request_user_data = next(
+            (u for u in user_inform if u["user_id"] == request.user.id), 
+            None
+        )
 
-        user_flattened_tags = set(user_flattened_tags)
-
+        # request 유저의 태그 평탄화
+        request_user_inform = request_user_data["tag_id"]
+        user_flattened_tags = set(itertools.chain.from_iterable(request_user_inform))
         best_user_id = None
         max_count = -1
 
@@ -706,15 +711,12 @@ class Collaborations_Assistant():
                 tag_id_nested = user_data["tag_id"]  # 2차원 리스트
 
                 # 2차원 리스트 -> 1차원 리스트로 평탄화
-                flattened_tags = []
-                for sublist in tag_id_nested:
-                    flattened_tags.extend(sublist)
-                
-                # set으로 변환 (중복 제거)
-                user_tag_set = set(flattened_tags)
+                flattened_tags = set(
+                itertools.chain.from_iterable(tag_id_nested))
 
                 # 교집합 크기 계산
-                intersection_count = len(user_tag_set.intersection(user_flattened_tags))
+                intersection_count = len(
+                    flattened_tags.intersection(user_flattened_tags))
 
                 # 최대값 갱신
                 if intersection_count > max_count:
@@ -760,8 +762,6 @@ class Collaborations_Assistant():
         if not similar_user:
             return []
         
-        
-        
         # 본인의 게임 아이디, 가장 비슷한 유저의 게임 아이디 가져오기
         request_game_id = self.find_game_id(request.user.id)
         user_game_id = self.find_game_id(similar_user)
@@ -769,7 +769,7 @@ class Collaborations_Assistant():
         # 본인이 보유한 게임과 가장 비슷한 유저의 게임의 중복 아이템 제거
         filtered = [x for x in user_game_id if x not in request_game_id]
 
-        return filtered       
+        return filtered
     
 
     def search_game(self, request, query):
@@ -795,6 +795,7 @@ class Collaborations_Assistant():
             for game_id in similar_user_game:
                 game_tag_id = self.get_game_tag(game_id)
                 # 가장 비슷한 유저의 게임 중 본인이 원하는 종류의 게임 추출
+                # 사용자 입력의 태그를 모두 충족하는 게임 추출
                 if all(tag in game_tag_id for tag in input_tag):
                     # 미성년자의 경우 게임 필터링
                     if request.user.age < 20:
@@ -804,10 +805,27 @@ class Collaborations_Assistant():
                     else:
                         search_game_id.append(game_id)
                         num += 1
+
+                    # 비슷한 유저의 게임 중 원하는 게임이 다 쌓였을 경우 탈출
+                    if num == 3:
+                        break
+
+            # 사용자 입력의 태그를 모두 충족하는 게임이 없을 시 하나라도 충족하는 게임 추출
+            if num==0:
+                for game_id in similar_user_game:
+                    if any(tag in game_tag_id for tag in input_tag):
+                        # 미성년자의 경우 게임 필터링
+                        if request.user.age < 20:
+                            if not any(tag in game_tag_id[0:7] for tag in self.restrict_id):
+                                search_game_id.append(game_id)
+                                num += 1
+                        else:
+                            search_game_id.append(game_id)
+                            num += 1
                 
-                # 비슷한 유저의 게임 중 원하는 게임이 다 쌓였을 경우 탈출
-                if num == 3:
-                    break
+                    # 비슷한 유저의 게임 중 원하는 게임이 다 쌓였을 경우 탈출
+                    if num == 3:
+                        break
 
         # 사용자 게임에 이미 검색된 게임도 포함
         user_game.extend(search_game_id)
@@ -819,8 +837,8 @@ class Collaborations_Assistant():
             game = self.search_filter(
                 request, search_tag, input_tag, search_num, user_game)
             
-            # 검색 결과로 아무런 게임이 없을 때 바로 안내 문구로 결과 출력
-            if not game == self.config.not_result_message or game[0]:
+            # 검색 결과가 잘 나왔을 때 결과에 추가
+            if game != self.config.not_result_message or game[0]:
                 search_game_id.extend(game)
 
         # 취향이 비슷한 유저와 검색의 결과로 아무것도 추출되지 않았을 때

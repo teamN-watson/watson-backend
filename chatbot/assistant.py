@@ -433,10 +433,14 @@ class Assistant():
             "tags": tags
         })
 
+        # 사용자 입력에서 태그 발견 못 할 시
+        if not input_tag:
+            return [], self.config.not_result_message
+
         # 미성년자의 경우 검색어 필터링
         if request.user.age < 20:
             if any(tag in input_tag for tag in self.restrict_id):
-                return self.config.restrict_message
+                return [], self.config.restrict_message
 
         tags = []
         tag_id = self.get_tagid(request)
