@@ -104,8 +104,19 @@ class Notice(models.Model):
     user_id = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="accounts"
     )
-    type = models.IntegerField(default=0)
+    TYPE_GENERAL = 1
+    TYPE_FRIEND_REQUEST = 2
+    TYPE_COMMENT = 3
+
+    TYPE_CHOICES = [
+        (TYPE_GENERAL, "일반 알림"),
+        (TYPE_FRIEND_REQUEST, "친구 요청 알림"),
+        (TYPE_COMMENT, "댓글 알림"),
+    ]
+
+    type = models.IntegerField(choices=TYPE_CHOICES, default=0)
     content = models.CharField(max_length=50)
+    is_read = models.BooleanField(default=False) # 읽음 여부
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -117,7 +128,7 @@ class FriendRequest(models.Model):
         related_name="my_friend_request",
     )
     friend_id = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    type = models.IntegerField(default=0)
+    type = models.IntegerField(default=0) # 0: 대기중, 1: 수락, -1: 거절
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -154,3 +165,24 @@ class SteamPlaytime(models.Model):
     """
     account = models.ForeignKey(Account, on_delete=models.CASCADE)
     app_id = models.CharField(max_length=50)
+
+class Block(models.Model):
+    """
+    유저 차단 정보를 저장할 모델
+    """
+    blocker = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="blocked_users"  # 차단한 유저
+    )
+    blocked_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="blocked_by_users"  # 차단된 유저
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = [('blocker', 'blocked_user')]
+        ordering = ['-created_at']

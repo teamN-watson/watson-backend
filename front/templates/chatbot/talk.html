@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% load static %}
+{% block extrahead %}
+<link rel="stylesheet" type="text/css" href="{% static "css/chatbot/talk.css" %}">
+<script src="{% static 'js/chatbot/talk.js' %}"></script>
+{% endblock %}
+{% block content %}
+<div class="chatbotContainer">
+    <div class="chatbot_wrap" id="wrap1">
+        <div class="chatbot_record"></div>
+        <form action="{% url "chatbot:chatbot" %}" method="POST">
+            <div class="chatbot_input">
+                <input type="text" name="message" placeholder="메시지를 입력해주세요.">
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock content %}

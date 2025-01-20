@@ -5,7 +5,7 @@ from django.urls import reverse
 from django.shortcuts import redirect, render
 from accounts.models import Account
 import requests
-from .forms import ReviewForm
+
 
 def index(request):
     return render(request, "index.html")
@@ -25,6 +25,10 @@ def edit(request):
 
 def profile(request, pk):
     return render(request, "account/profile.html", context={"id": pk})
+
+
+def chatbot(request):
+    return render(request, "chatbot/talk.html")
 
 
 def steam(request):
@@ -58,20 +62,6 @@ def steam_callback(request):
     return redirect("front:profile", pk=account.id)
 
 
-# def get_steam_user_info(steam_id):
-#     key = {
-#         "key": "YOUR_STEAM_API_KEY",
-#         "steamids": steam_id,  # from who you want to get the information. if you are giving a array, you need to change some code here.
-#     }
-#     url = (
-#         "http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0001/?%s"
-#         % parse.urlencode(key)
-#     )
-#     rv = ujson.load(request.urlopen(url))
-#     return rv["response"]["players"]["player"][0] or {}
-
-
-
 def reviews_list(request):
     # API에서 리뷰 데이터를 가져오는 요청 (적절한 API URL로 수정 필요)
     api_url = "http://127.0.0.1:8000/api/reviews/"  # 실제 API 엔드포인트로 수정하세요.
@@ -84,20 +74,19 @@ def reviews_list(request):
 
     return render(request, "reviews/reviews_list.html", {"reviews": reviews})
 
-@login_required
+
 def review_create(request):
-    if request.method == 'GET':
-        app_id = request.GET.get('app_id')  # URL 파라미터에서 app_id 받기
-        form = ReviewForm(initial={'app_id': app_id})  # 폼에 초기값 설정
-        return render(request, 'reviews/review_form.html', {'form': form})
-    elif request.method == 'POST':
+    return render(request, "reviews/review_create.html")
+    if request.method == "GET":
+        app_id = request.GET.get("app_id")  # URL 파라미터에서 app_id 받기
+        form = ReviewForm(initial={"app_id": app_id})  # 폼에 초기값 설정
+    elif request.method == "POST":
         form = ReviewForm(request.POST)
         if form.is_valid():
             review = form.save(commit=False)
             review.user = request.user  # 현재 로그인한 사용자 설정
             review.save()
-            return redirect('front:reviews_list')  # 성공 후 목록 페이지로 리다이렉트
+            return redirect("front:reviews_list")  # 성공 후 목록 페이지로 리다이렉트
         else:
             # 폼이 유효하지 않으면 에러 메시지와 함께 다시 렌더링
-            return render(request, 'reviews/review_form.html', {'form': form})
-
+            return render(request, "reviews/review_form.html", {"form": form})

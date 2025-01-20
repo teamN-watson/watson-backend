@@ -1,9 +1,18 @@
 {% extends 'base.html' %}
-
+{% load static %}
+{% block extrahead %}
+<link rel="stylesheet" type="text/css" href="{% static "css/review/list.css" %}">
+<script src="{% static 'js/review/list.js' %}"></script>
+{% endblock %}
 {% block content %}
+<div class="listContainer">
     <h1>리뷰 목록</h1>
-    <a href="{% url 'front:review_create' %}">새 리뷰 작성</a>
-    <ul class="reviews-list">
+    <div class="listWrap">
+    </div>
+    <div>
+        <a href="{% url 'front:review_create' %}">새 리뷰 작성</a>
+    </div>
+    {% comment %} <ul class="reviews-list">
         {% if reviews %}
             {% for review in reviews %}
                 <li class="review-item">
@@ -18,5 +27,6 @@
         {% else %}
             <p>등록된 리뷰가 없습니다.</p>
         {% endif %}
-    </ul>
+    </ul> {% endcomment %}
+</div>
 {% endblock %}

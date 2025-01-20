@@ -18,4 +18,16 @@ urlpatterns = [
 
     # 특정 리뷰에 좋아요/비추천 생성 및 상태 변경
     path("<int:review_id>/like/", views.ReviewLikeAPIView.as_view(), name="review_like"),  # /api/reviews/<review_id>/like/
-]
+
+    # 특정 댓글에 좋아요/비추천 생성 및 상태 변경
+    path("comments/<int:comment_id>/like/", views.ReviewCommentLikeAPIView.as_view(), name="review_comment_like"),  # /api/reviews/comments/<comment_id>/like/
+
+    # 리뷰 검색
+    path("search/", views.ReviewSearchAPIView.as_view(), name="review_search"),  # /api/reviews/search/
+    
+    # 게임 상세 정보
+    path("game/<int:app_id>/", views.GameDetailAPIView.as_view(), name="game_detail"),  # /api/reviews/game/<app_id>/
+    
+    # 리뷰 작성 시 게임 정보
+    path("games/search/", views.GameSearchAPIView.as_view(), name="game_search"),  # /api/reviews/games/search/
+    ]
