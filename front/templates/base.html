@@ -9,6 +9,7 @@
         <link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}">
         <link rel="stylesheet" type="text/css" href="{% static 'css/navbar.css' %}">
         <script src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
+        <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
         <script src="{% static 'js/index.js' %}"></script>
         {% block extrahead %}{% endblock %}
 
@@ -24,8 +25,9 @@
                     </div>
                     <div>
                         <ul class="menu">
-                            <li><a href="/search">리뷰</a></li>
-                            <li><a href="/search">게임</a></li>
+                            <li><a href="/view/reviews/">리뷰</a></li>
+                            <li><a href="/view/search">게임</a></li>
+                            <li><a href="/view/chatbot">챗봇</a></li>
                         </ul>
                     </div>
                     <div>

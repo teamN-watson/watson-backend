@@ -1,0 +1,34 @@
+/* signContainer */
+.signContainer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    height: 500px;
+    gap: 20px;
+}
+.signContainer h2{
+    font-size: 35px;
+}
+/* signinForm */
+.signinForm {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+
+.signForm input[type="text"], .signForm input[type="password"] {
+    border: none;
+    padding: 10px;
+    border-bottom: 1px solid black;
+    min-width: 300px;
+}
+
+.signForm input[type="submit"]{
+    font-size: 17px;
+    font-weight: bold;
+    border-radius: 5px;
+    cursor: pointer;
+    padding: 5px;
+}

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Account, Interest
+from .models import Account, Interest, Notice, FriendRequest
 from django.contrib.auth.hashers import make_password  # 비밀번호 해싱
 from django.core.validators import validate_email
 import re
@@ -238,13 +238,23 @@ class AccountUpdateSerializer(serializers.ModelSerializer):
         error_messages={
             "required": "이메일 값은 필수입니다.",
             "invalid": "올바른 이메일 형식으로 입력해주세요.",
+            "blank": "이메일을 입력해주세요.",
         },
     )
     nickname = serializers.CharField(
-        required=True, error_messages={"required": "닉네임은 입력은 필수입니다."}
+        required=True,
+        error_messages={
+            "required": "닉네임은 입력은 필수입니다.",
+            "blank": "닉네임을 입력해주세요.",
+        },
     )
     age = serializers.IntegerField(
-        required=True, error_messages={"required": "나이 입력은 필수입니다."}
+        required=True,
+        error_messages={
+            "required": "나이 입력은 필수입니다.",
+            "invalid": "올바른 나이를 입력해주세요.",
+            "blank": "나이를 입력해주세요.",
+        },
     )
 
     class Meta:
@@ -278,3 +288,27 @@ class InterestSerializer(serializers.ModelSerializer):
     class Meta:
         model = Interest
         fields = ["id", "name"]  # 모든 필드를 직렬화
+
+
+class NoticeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notice
+        fields = ["id", "type", "content", "is_read", "created_at", "updated_at"]
+
+
+class FriendRequestSerializer(serializers.ModelSerializer):
+    user_nickname = serializers.CharField(source="user_id.nickname", read_only=True)
+    friend_nickname = serializers.CharField(source="friend_id.nickname", read_only=True)
+
+    class Meta:
+        model = FriendRequest
+        fields = [
+            "id",
+            "user_id",
+            "user_nickname",
+            "friend_id",
+            "friend_nickname",
+            "type",
+            "created_at",
+        ]
+        read_only_fields = ["id", "user_nickname", "friend_nickname", "created_at"]

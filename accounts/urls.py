@@ -30,4 +30,11 @@ urlpatterns = [
     path("interest/", views.interest, name="interest"),
     path("profile/", views.profile, name="profile"),
     path("steam_profile/", views.steam_profile, name="steam_profile"),
+    path("steam_login/", views.steam_login, name="steam_login"),
+    path("steam_callback/", views.steam_callback, name="steam_callback"),
+    path("block/", views.BlockedUserAPIView.as_view(), name="block"),
+    path("notice/", views.NoticeAPIView.as_view(), name="notice"),
+    path("notice/<int:notice_id>/", views.NoticeDetailAPIView.as_view(), name="notice_detail"),
+    path("friend_request/", views.FriendRequestAPIView.as_view(), name="friend_request"),
+    path("friend/", views.FriendAPIView.as_view(), name="friend"),
 ]
