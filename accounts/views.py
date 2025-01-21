@@ -1,4 +1,4 @@
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.views import APIView
 
 from .models import (
@@ -29,7 +29,6 @@ from rest_framework.response import Response
 from django.http import JsonResponse, HttpResponse
 
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.decorators import permission_classes
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from rest_framework_simplejwt.exceptions import TokenError
@@ -43,8 +42,9 @@ import environ
 import requests
 from urllib import parse
 import json
-
+import environ
 from accounts import serializers
+import time
 
 
 @api_view(["POST"])
@@ -238,6 +238,61 @@ def profile(request):
     else:
         return Response({"message": "Invalid request."}, status=400)
 
+@api_view(['GET'])
+def get_recommended_games(request):
+    print("=== 추천 게임 API 호출 시작 ===")
+    
+    try:
+        steam_tag_ids = request.user.get_steam_tag_ids()
+        all_games = []
+        for app_id in steam_tag_ids:
+            try:
+                # Steam Store API로 게임 정보 가져오기
+                url = f"https://store.steampowered.com/api/appdetails"
+                params = {
+                    'appids': app_id,
+                    'language': 'koreana'
+                }
+                
+                print(f"게임 정보 요청: {app_id}")
+                response = requests.get(url, params=params)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    if data and data.get(str(app_id), {}).get('success'):
+                        game_data = data[str(app_id)]['data']
+                        game = {
+                            'appid': app_id,
+                            'name': game_data.get('name', ''),
+                            'header_image': game_data.get('header_image', ''),
+                            'final_price': game_data.get('price_overview', {}).get('final_formatted', '무료'),
+                            'discount_percent': game_data.get('price_overview', {}).get('discount_percent', 0)
+                        }
+                        all_games.append(game)
+                        print(f"게임 정보 추가됨: {game['name']}")
+                    else:
+                        print(f"게임 정보 없음: {app_id}")
+                
+                # API 호출 제한을 피하기 위한 딜레이
+                time.sleep(1)
+                
+            except Exception as e:
+                print(f"게임 {app_id} 처리 중 오류 발생: {str(e)}")
+                continue
+        
+        print(f"\n전체 검색된 게임 수: {len(all_games)}")
+        
+        return Response({
+            "message": "인기 게임 목록입니다.",
+            "games": all_games
+        })
+        
+    except Exception as e:
+        print(f"치명적 오류 발생: {str(e)}")
+        return Response({
+            "message": f"오류가 발생했습니다: {str(e)}",
+            "games": []
+        }, status=500)
 
 class MypageAPIView(APIView):
 
@@ -715,3 +770,4 @@ class FriendAPIView(APIView):
         return Response(
             {"message": "친구가 삭제되었습니다."}, status=status.HTTP_204_NO_CONTENT
         )
+

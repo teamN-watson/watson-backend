@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from accounts.utils import OverwriteStorage, rename_imagefile_to_uid
 from django.conf import settings
+from django.db.models import Q
 
 class Game(models.Model):
     db_table = "accounts_game"
@@ -98,6 +99,15 @@ class Account(AbstractBaseUser):
 
     def __str__(self):
         return self.user_id
+    
+    def get_steam_tag_ids(self):
+        """
+        사용자의 관심사를 기반으로 steam_tag_id 목록을 한 번의 쿼리로 추출합니다.
+        """
+        return list(Tag.objects.filter(
+            Q(interesttag__interest__accountinterest__account=self) &
+            ~Q(steam_tag_id=0)
+        ).values_list('steam_tag_id', flat=True).distinct())
 
 
 class Notice(models.Model):
