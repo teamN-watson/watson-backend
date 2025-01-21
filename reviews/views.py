@@ -473,6 +473,7 @@ class GameSearchAPIView(APIView):
                         "appID": game.appID,
                         "name": game.name,
                         "header_image": game.header_image,
+                        "genres": game.genres_kr,
                     }
                     for game in page_obj
                 ],

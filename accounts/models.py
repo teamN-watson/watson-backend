@@ -3,16 +3,19 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from accounts.utils import OverwriteStorage, rename_imagefile_to_uid
 from django.conf import settings
 
+
 class Game(models.Model):
     db_table = "accounts_game"
     appID = models.IntegerField(unique=True, db_index=True)  # Steam App ID
     name = models.CharField(max_length=255)  # 게임 이름
     supported_languages = models.JSONField()  # 지원 언어 (JSON 형식으로 저장)
     genres = models.JSONField()  # 장르 (JSON 형식으로 저장)
+    genres_kr = models.JSONField()  # 장르 (JSON 형식으로 저장)
     header_image = models.URLField()  # 헤더 이미지 URL
 
     def __str__(self):
         return self.name
+
 
 class Tag(models.Model):  # 게임의 태그
     name_en = models.CharField(max_length=50, unique=True)
@@ -116,7 +119,7 @@ class Notice(models.Model):
 
     type = models.IntegerField(choices=TYPE_CHOICES, default=0)
     content = models.CharField(max_length=50)
-    is_read = models.BooleanField(default=False) # 읽음 여부
+    is_read = models.BooleanField(default=False)  # 읽음 여부
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -128,7 +131,7 @@ class FriendRequest(models.Model):
         related_name="my_friend_request",
     )
     friend_id = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    type = models.IntegerField(default=0) # 0: 대기중, 1: 수락, -1: 거절
+    type = models.IntegerField(default=0)  # 0: 대기중, 1: 수락, -1: 거절
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -147,42 +150,49 @@ class SteamProfile(models.Model):
     Account의 steamId를 연동한 스팀 프로필 기본 정보
     리뷰와 플레이 타임 표시 여부 등을 저장한다
     """
+
     account = models.OneToOneField(Account, on_delete=models.CASCADE)
-    is_review = models.BooleanField(default=False)      # 리뷰 공개 여부
-    is_playtime = models.BooleanField(default=False)    # 플레이 타임 공개 여부
+    is_review = models.BooleanField(default=False)  # 리뷰 공개 여부
+    is_playtime = models.BooleanField(default=False)  # 플레이 타임 공개 여부
+
 
 class SteamReview(models.Model):
     """
     스팀 리뷰 중에서 'Recommended'가 붙은 상위 3개를 저장할 모델
     """
+
     account = models.ForeignKey(Account, on_delete=models.CASCADE)
-    app_id = models.CharField(max_length=50)   # 게임 앱 아이디
+    app_id = models.CharField(max_length=50)  # 게임 앱 아이디
     # review_text = models.TextField(blank=True)  # 필요 시 리뷰 내용을 저장
+
 
 class SteamPlaytime(models.Model):
     """
     플레이 타임 상위 2개 게임 정보를 저장할 모델
     """
+
     account = models.ForeignKey(Account, on_delete=models.CASCADE)
     app_id = models.CharField(max_length=50)
+
 
 class Block(models.Model):
     """
     유저 차단 정보를 저장할 모델
     """
+
     blocker = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name="blocked_users"  # 차단한 유저
+        related_name="blocked_users",  # 차단한 유저
     )
     blocked_user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name="blocked_by_users"  # 차단된 유저
+        related_name="blocked_by_users",  # 차단된 유저
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = [('blocker', 'blocked_user')]
-        ordering = ['-created_at']
+        unique_together = [("blocker", "blocked_user")]
+        ordering = ["-created_at"]
