@@ -18,6 +18,7 @@ from accounts.models import Game, Block, Notice
 from django.db.models import Case, When, Value, IntegerField
 from django.core.paginator import Paginator
 from django.http import JsonResponse
+from reviews.youtube import SearchYoutube
 
 
 class ReviewAPIView(APIView):
@@ -405,6 +406,15 @@ class GameDetailAPIView(APIView):
         # Game 객체 가져오기
         game = get_object_or_404(Game, appID=game_id)
 
+        # Game 이름만 추출
+        game_name = game.name
+
+        # 유튜브 영상 검색 함수 호출 (환경변수)
+        searcher = SearchYoutube.from_env()
+
+        # 특정 쿼리에 대해 가장 인기도 높은 10분 이하 영상 한 개 검색
+        result = searcher.search_videos(query=game_name+" 게임", max_results=10)
+
         # 리뷰 가져오기
         reviews = Review.objects.filter(app_id=game_id)
         my_review = None
@@ -434,6 +444,7 @@ class GameDetailAPIView(APIView):
         return Response(
             {
                 "game": game_serializer.data,
+                "video" : result,
                 "my_review": my_review_serializer.data if my_review else None,
                 "clicked_review": clicked_review_serializer.data
                 if clicked_review
