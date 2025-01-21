@@ -18,6 +18,8 @@ from accounts.models import Game, Block, Notice
 from django.db.models import Case, When, Value, IntegerField
 from django.core.paginator import Paginator
 from django.http import JsonResponse
+import requests
+from urllib.parse import urlencode
 
 
 class ReviewAPIView(APIView):
@@ -435,9 +437,9 @@ class GameDetailAPIView(APIView):
             {
                 "game": game_serializer.data,
                 "my_review": my_review_serializer.data if my_review else None,
-                "clicked_review": clicked_review_serializer.data
-                if clicked_review
-                else None,
+                "clicked_review": (
+                    clicked_review_serializer.data if clicked_review else None
+                ),
                 "reviews": other_reviews_serializer.data,
             }
         )
@@ -503,3 +505,18 @@ class GameSearchAPIView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+def get_game_details(request, app_id):
+    try:
+        params = {'appids': app_id, 'language': 'korean'}
+        headers = {
+            'Cache-Control': 'no-cache',  # 캐시를 사용하지 않도록 설정
+        }
+        url = f'https://store.steampowered.com/api/appdetails?{urlencode(params)}'
+        response = requests.get(url, headers=headers)
+        data = response.json()
+        print(data)
+        return JsonResponse(data)
+    except requests.exceptions.RequestException as e:
+        return JsonResponse({"error": str(e)}, status=500)
