@@ -75,7 +75,7 @@ def signup(request):
                 password=request.data["password"],
             )
 
-            steam_id = request.data.get("steam_id")
+            steam_id = request.data.get("steamId")
             if steam_id:
                 # DB에 리뷰공개 여부/플레이타임/리뷰 데이터 동기화 다음에 하기 할 때 제외하는 로직
                 sync_new_steam_user_data(user)
@@ -454,7 +454,7 @@ def steam_login(request):
     # user_id가 없을 경우: 회원가입 페이지로 리디렉션
     else:
         params["openid.return_to"] = (
-            "http://localhost:5173/signup?from_steam=true"  # 회원가입 페이지로 리디렉션
+            "http://localhost:5173/steam/callback"  # 회원가입 페이지로 리디렉션
         )
 
     param_string = parse.urlencode(params)
@@ -469,23 +469,35 @@ def steam_callback(request):
     user_id = body.get("userId")
     print(steam_id, user_id)
     # 'openid.claimed_id'가 존재하는 경우, 스팀 ID 추출
-    if steam_id and user_id:
-        try:
-            account = Account.objects.get(user_id=user_id)
-            account.steamId = steam_id
-            account.save()
+    if steam_id:
+        if user_id:
+            try:
+                account = Account.objects.get(user_id=user_id)
+                account.steamId = steam_id
+                account.save()
 
-            # DB에 리뷰공개 여부/플레이타임/리뷰 데이터 동기화
-            sync_new_steam_user_data(account)
+                # DB에 리뷰공개 여부/플레이타임/리뷰 데이터 동기화
+                sync_new_steam_user_data(account)
 
-            return JsonResponse(
-                {
-                    "message": "Steam ID linked successfully!",
-                    "data": {"user_id": account.id},
-                }
-            )
-        except Account.DoesNotExist:
-            return JsonResponse({"error": "Account not found"}, status=404)
+                return JsonResponse(
+                    {
+                        "message": "Steam ID linked successfully!",
+                        "data": {"page":"mypage","user_id": account.id},
+                    }
+                )
+            except Account.DoesNotExist:
+                return JsonResponse({"error": "Account not found"}, status=404)
+        else:
+            
+            if Account.objects.filter(steamId=steam_id).count() > 0:
+                return JsonResponse({"error": "이미 가입된 스팀ID입니다."}, status=400)
+            else:
+                return JsonResponse(
+                    {
+                        "message": "스팀 회원가입 진행", 
+                        "data": {"page":"signup", "steam_id": steam_id}}
+                    ,status=status.HTTP_200_OK)
+            
     return JsonResponse({"error": "Invalid method"}, status=405)
 
 
