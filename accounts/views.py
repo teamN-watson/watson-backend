@@ -21,6 +21,8 @@ from .serializers import (
     SignupStep2Serializer,
     NoticeSerializer,
 )
+
+from .steam_service import sync_new_steam_user_data
 from reviews.serializers import ReviewSerializer
 from rest_framework import status
 from rest_framework.response import Response
@@ -72,6 +74,12 @@ def signup(request):
                 user_id=request.data["user_id"],
                 password=request.data["password"],
             )
+
+            steam_id = request.data.get("steam_id")
+            if steam_id:
+                # DB에 리뷰공개 여부/플레이타임/리뷰 데이터 동기화 다음에 하기 할 때 제외하는 로직
+                sync_new_steam_user_data(user)
+
             refresh = RefreshToken.for_user(user)
             for select_id in select_ids:
                 interest = Interest.objects.get(
@@ -466,6 +474,9 @@ def steam_callback(request):
             account = Account.objects.get(user_id=user_id)
             account.steamId = steam_id
             account.save()
+
+            # DB에 리뷰공개 여부/플레이타임/리뷰 데이터 동기화
+            sync_new_steam_user_data(account)
 
             return JsonResponse(
                 {
