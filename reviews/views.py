@@ -18,6 +18,9 @@ from accounts.models import Game, Block, Notice
 from django.db.models import Case, When, Value, IntegerField
 from django.core.paginator import Paginator
 from django.http import JsonResponse
+from urllib.parse import urlencode
+from reviews.youtube import SearchYoutube
+import requests
 
 
 class ReviewAPIView(APIView):
@@ -393,30 +396,61 @@ class GameDetailAPIView(APIView):
 
     permission_classes = [AllowAny]
 
-    def get(self, request, app_id):
+    def get(self, request):
+        # 쿼리 파라미터에서 game_id와 review_id 가져오기
+        game_id = request.query_params.get("game_id")
+        review_id = request.query_params.get("review_id")
+
+        # game_id가 없을 경우 에러 반환
+        if not game_id:
+            return Response({"error": "game_id is required."}, status=400)
+
         # Game 객체 가져오기
-        game = get_object_or_404(Game, appID=app_id)
+        game = get_object_or_404(Game, appID=game_id)
+
+        # Game 이름만 추출
+        game_name = game.name
+
+        # 유튜브 영상 검색 함수 호출 (환경변수)
+        searcher = SearchYoutube.from_env()
+
+        # 특정 쿼리에 대해 가장 인기도 높은 10분 이하 영상 한 개 검색
+        result = searcher.search_videos(query=game_name+" 게임", max_results=10)
 
         # 리뷰 가져오기
-        reviews = Review.objects.filter(app_id=app_id)
-        my_review = None  # 기본값 설정
+        reviews = Review.objects.filter(app_id=game_id)
+        my_review = None
+        clicked_review = None
 
-        # 사용자가 인증된 경우에만 자신의 리뷰 필터링
+        # 사용자가 인증된 경우, 자신의 리뷰 필터링
         if request.user.is_authenticated:
-            my_review = reviews.filter(
-                user_id=request.user.id
-            ).first()  # user_id로 매칭
+            my_review = reviews.filter(user_id=request.user.id).first()
             reviews = reviews.exclude(user_id=request.user.id)
+
+        # review_id가 있는 경우, 해당 리뷰를 clicked_review로 설정
+        if review_id:
+            try:
+                clicked_review = reviews.get(id=review_id)
+                reviews = reviews.exclude(id=review_id)
+            except Review.DoesNotExist:
+                clicked_review = None
 
         # 직렬화
         game_serializer = GameSerializer(game)
         my_review_serializer = ReviewSerializer(my_review) if my_review else None
+        clicked_review_serializer = (
+            ReviewSerializer(clicked_review) if clicked_review else None
+        )
         other_reviews_serializer = ReviewSerializer(reviews, many=True)
 
         return Response(
             {
                 "game": game_serializer.data,
+                "video" : result,
                 "my_review": my_review_serializer.data if my_review else None,
+                "clicked_review": (
+                    clicked_review_serializer.data if clicked_review else None
+                ),
                 "reviews": other_reviews_serializer.data,
             }
         )
@@ -473,6 +507,7 @@ class GameSearchAPIView(APIView):
                         "appID": game.appID,
                         "name": game.name,
                         "header_image": game.header_image,
+                        "genres": game.genres_kr,
                     }
                     for game in page_obj
                 ],
@@ -481,3 +516,18 @@ class GameSearchAPIView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+def get_game_details(request, app_id):
+    try:
+        params = {'appids': app_id, 'language': 'korean'}
+        headers = {
+            'Cache-Control': 'no-cache',  # 캐시를 사용하지 않도록 설정
+        }
+        url = f'https://store.steampowered.com/api/appdetails?{urlencode(params)}'
+        response = requests.get(url, headers=headers)
+        data = response.json()
+        print(data)
+        return JsonResponse(data)
+    except requests.exceptions.RequestException as e:
+        return JsonResponse({"error": str(e)}, status=500)

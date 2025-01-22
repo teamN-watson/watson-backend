@@ -42,6 +42,7 @@ import environ
 import requests
 from urllib import parse
 import json
+from django.contrib.auth import login
 import environ
 from accounts import serializers
 import time
@@ -75,7 +76,7 @@ def signup(request):
                 password=request.data["password"],
             )
 
-            steam_id = request.data.get("steam_id")
+            steam_id = request.data.get("steamId")
             if steam_id:
                 # DB에 리뷰공개 여부/플레이타임/리뷰 데이터 동기화 다음에 하기 할 때 제외하는 로직
                 sync_new_steam_user_data(user)
@@ -554,6 +555,7 @@ def steam_profile(request):
 @api_view(["GET"])
 def steam_login(request):
     user_id = request.query_params.get("user_id")
+    page = request.query_params.get("page")
 
     steam_openid_url = "https://steamcommunity.com/openid/login"
     # 공통 파라미터
@@ -566,14 +568,14 @@ def steam_login(request):
     }
 
     # user_id가 있을 경우: 마이페이지로 리디렉션
-    if user_id:
+    if page == "mypage" and user_id:
         params["openid.return_to"] = (
-            f"http://localhost:5173/steam/callback?user_id={user_id}"
+            f"http://localhost:5173/steam/callback?user_id={user_id}&page={page}"
         )
-    # user_id가 없을 경우: 회원가입 페이지로 리디렉션
+    # user_id가 없을 경우: 회원가입 페이지 or 로그인 페이지로 리디렉션
     else:
         params["openid.return_to"] = (
-            "http://localhost:5173/signup?from_steam=true"  # 회원가입 페이지로 리디렉션
+            f"http://localhost:5173/steam/callback?page={page}"  # 회원가입 페이지로 리디렉션
         )
 
     param_string = parse.urlencode(params)
@@ -586,25 +588,75 @@ def steam_callback(request):
     body = json.loads(request.data["body"])
     steam_id = body.get("steamId")
     user_id = body.get("userId")
+    page = body.get("page")
     print(steam_id, user_id)
     # 'openid.claimed_id'가 존재하는 경우, 스팀 ID 추출
-    if steam_id and user_id:
-        try:
-            account = Account.objects.get(user_id=user_id)
-            account.steamId = steam_id
-            account.save()
+    if steam_id:
+        if user_id and page == "mypage":
+            if Account.objects.filter(steamId=steam_id).count() > 0:
+                return Response({"message": "이미 연동된 스팀ID입니다."}, status=400)
+            try:
+                
+                account = Account.objects.get(user_id=user_id)
+                account.steamId = steam_id
+                account.save()
 
-            # DB에 리뷰공개 여부/플레이타임/리뷰 데이터 동기화
-            sync_new_steam_user_data(account)
+                # DB에 리뷰공개 여부/플레이타임/리뷰 데이터 동기화
+                sync_new_steam_user_data(account)
 
-            return JsonResponse(
-                {
-                    "message": "Steam ID linked successfully!",
-                    "data": {"user_id": account.id},
-                }
-            )
-        except Account.DoesNotExist:
-            return JsonResponse({"error": "Account not found"}, status=404)
+                return JsonResponse(
+                    {
+                        "message": "Steam ID linked successfully!",
+                        "page":"mypage",
+                        "user_id": account.id
+                    }
+                )
+            except Account.DoesNotExist:
+                return JsonResponse({"error": "Account not found"}, status=404)
+        else:
+            if page == "signin":
+                try:
+                    user = Account.objects.get(steamId=steam_id)
+                except ObjectDoesNotExist:
+                    return Response({"message": "계정을 찾을 수 없습니다."}, status=400)
+                if not user:
+                    return Response({"message": "잘못된 로그인 정보입니다."}, status=400)
+                # 인증 성공: Token 발급 (or JWT 발급)
+                login(request, user)  # 사용자 세션 생성
+                refresh = RefreshToken.for_user(user)
+
+                # 응답 반환
+                return Response(
+                    {
+                        "message": "Login successful.",
+                        "refresh_token": str(refresh),
+                        "access_token": str(refresh.access_token),
+                        "page":"signin",
+                        "user": {
+                            "id": user.id,
+                            "user_id": user.user_id,
+                            "email": user.email,
+                            "nickname": user.nickname,
+                            "age": user.age,
+                            "photo": user.photo.url if user.photo else "",
+                            "steamId": user.steamId,
+                        },
+                        # "token": token.key,
+                    },
+                    status=status.HTTP_200_OK,
+                )
+                
+            if page == "signup":
+                if Account.objects.filter(steamId=steam_id).count() > 0:
+                    return JsonResponse({"error": "이미 가입된 스팀ID입니다."}, status=400)
+                else:
+                    return JsonResponse(
+                        {
+                            "message": "스팀 회원가입 진행", 
+                            "page":"signup", 
+                            "steam_id": steam_id
+                        },status=status.HTTP_200_OK)
+            
     return JsonResponse({"error": "Invalid method"}, status=405)
 
 

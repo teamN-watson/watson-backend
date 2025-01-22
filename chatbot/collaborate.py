@@ -9,11 +9,13 @@ import requests
 from bs4 import BeautifulSoup
 from langchain.schema.runnable import Runnable, RunnableSequence
 from langchain.schema import LLMResult, AIMessage, SystemMessage, HumanMessage
-from accounts.models import SteamProfile, SteamReview, SteamPlaytime
+from accounts.models import SteamProfile, SteamReview, SteamPlaytime, Account
 from accounts.models import Tag, InterestTag, AccountInterest
 from fake_useragent import UserAgent
 from collections import defaultdict
 import json
+from django.test import RequestFactory
+import itertools
 
 
 
@@ -93,7 +95,7 @@ class ListOutputParser(Runnable):
             return []
 
 
-class Assistant():
+class Collaborations_Assistant():
     """
     결과를 제공하는 통합 어시스턴트
     이 클래스는 사용자 질의를 처리하고 관련 게임 정보를 검색하는 핵심 기능을 제공
@@ -343,15 +345,15 @@ class Assistant():
         # content_descriptors 찾기
         div = soup.find('div', class_='glance_tags popular_tags')
 
-        # div 정보 없을 때 그냥 반환
+        # div 정보 없을 때 빈 리스트 반환
         if not div:
-            return div
+            return []
         else:
             app_tags = div.find_all('a', class_='app_tag')
 
-            # div는 있되 app_tag 없을 때 그냥 반환
+            # div는 있되 app_tag 없을 때 빈 리스트 반환
             if not app_tags:
-                return app_tags
+                return []
             else:
                 descriptors = [tag.text.strip() for tag in app_tags]
                 tags = Tag.objects.filter(name_en__in=descriptors).values_list('steam_tag_id', flat=True)
@@ -464,7 +466,8 @@ class Assistant():
         else:
             return list(input_tag), list(input_tag)
 
-    def search_filter(self, request, tags, input_tag, user_game):
+
+    def search_filter(self, request, tags, input_tag, n, user_game):
         """
         태그를 통한 게임 검색 진행
         """
@@ -519,35 +522,61 @@ class Assistant():
                     app_ids.append(appid)
                     count += 1
                 
-                # 수집된 결과 3개 채워졌으면 반복문 탈출
-                if count == 3:
+                # 수집된 결과 n개 채워졌으면 반복문 탈출
+                if count == n:
                     break
 
-        if count < 3:
-            for link in sub_link: 
-                tagids = link.get('data-ds-tagids')
-                appid = link.get('data-ds-appid')
+            if count < n:
+                for link in sub_link: 
+                    tagids = link.get('data-ds-tagids')
+                    appid = link.get('data-ds-appid')
 
-                # 사용자가 플레이 했던 게임은 제외
-                if appid not in user_game:
-                    # 미성년자일 때 검색 결과 필터링
-                    if request.user.age < 20:   
-                        if not any(tag in json.loads(tagids) for tag in self.restrict_id):
-                            app_ids.append(appid) 
+                    # 사용자가 플레이 했던 게임은 제외
+                    if appid not in user_game:
+                        # 미성년자일 때 검색 결과 필터링
+                        if request.user.age < 20:   
+                            if not any(tag in json.loads(tagids) for tag in self.restrict_id):
+                                app_ids.append(appid) 
+                                count += 1
+                        else:
+                            app_ids.append(appid)
                             count += 1
-                    else:
-                        app_ids.append(appid)
-                        count += 1
-                    
-                    # 수집된 결과 3개 채워졌으면 반복문 탈출
-                    if count == 3:
-                        break
+                        
+                        # 수집된 결과 n개 채워졌으면 반복문 탈출
+                        if count == n:
+                            break
         
         # app_id가 아무것도 모이지 않았을 때 안내 문구 반환
         if not app_ids:
             return self.config.not_result_message
         return app_ids
 
+
+    def get_all_users_tag(self):
+        """
+        모든 사용자(Account) 대상으로 `get_tagid`를 호출하고,
+        결과를 추출하는 함수
+        """
+        # 결과를 담을 리스트
+        results = []
+
+        # request mock (user만 세팅)
+        factory = RequestFactory()
+
+        for user in Account.objects.all():
+            # Mock request 객체 생성
+            mock_request = factory.get("/")  # 단순히 GET "/"으로 생성
+            mock_request.user = user  # request.user에 현재 user를 삽입
+
+            tag_id = self.get_tagid(mock_request)
+            
+            # JSON에 넣을 형태 정의
+            result_item = {
+                "user_id": user.id,
+                "tag_id": tag_id
+            }
+            results.append(result_item)
+        return results
 
     
     def get_game_info(self, game_id):
@@ -654,22 +683,68 @@ class Assistant():
         }
         return review
 
+    
+    def find_similar_user(self, request):
+        """
+        유저와 가장 취향이 비슷한 유저의 아이디 추출
+        """       
+        user_inform = self.get_all_users_tag()
 
-    def find_game_id(self, request):
+        # user_inform에서 request 유저 데이터 추출
+        request_user_data = next(
+            (u for u in user_inform if u["user_id"] == request.user.id), 
+            None
+        )
+
+        # request 유저의 태그 평탄화
+        request_user_inform = request_user_data["tag_id"]
+        user_flattened_tags = set(itertools.chain.from_iterable(request_user_inform))
+        best_user_id = None
+        max_count = -1
+
+        # 모든 사용자 순회
+        for user_data in user_inform:
+            user_id = user_data["user_id"]
+
+            # 모든 사용자 중 본인의 정보는 제외
+            if user_id != request.user.id:
+                tag_id_nested = user_data["tag_id"]  # 2차원 리스트
+
+                # 2차원 리스트 -> 1차원 리스트로 평탄화
+                flattened_tags = set(
+                itertools.chain.from_iterable(tag_id_nested))
+
+                # 교집합 크기 계산
+                intersection_count = len(
+                    flattened_tags.intersection(user_flattened_tags))
+
+                # 최대값 갱신
+                if intersection_count > max_count:
+                    max_count = intersection_count
+                    best_user_id = user_id
+
+        if max_count/len(user_flattened_tags) < 0.3:
+            return []
+                
+        return best_user_id
+    
+
+    def find_game_id(self, user_id):
         """
         특정 계정에서 플레이 한 게임 아이디 가져오는 함수
         """
+        User = Account.objects.get(id=user_id)
         # 스팀 연동된 유저인지 확인
-        if request.user.steamId:
+        if User.steamId:
             # 리뷰 쓴 유저일 때
-            if SteamProfile.objects.filter(account_id=request.user.id, is_review=1).exists():
+            if SteamProfile.objects.filter(account_id=User.id, is_review=1).exists():
                 app_id = SteamReview.objects.filter(
-                    account_id=request.user.id).values_list('app_id', flat=True)
+                    account_id=User.id).values_list('app_id', flat=True)
             
             # 리뷰 안 썼지만 플레이 타임 정보 있는 유저일 때
-            elif SteamProfile.objects.filter(account_id=request.user.id, is_playtime=1).exists(): 
+            elif SteamProfile.objects.filter(account_id=User.id, is_playtime=1).exists(): 
                 app_id = SteamPlaytime.objects.filter(
-                    account_id=request.user.id).values_list('app_id', flat=True)
+                    account_id=User.id).values_list('app_id', flat=True)
                 
             else:
                 return []
@@ -678,25 +753,98 @@ class Assistant():
         return list(app_id)
 
 
+    def find_similar_game(self, request):
+        """
+        취향이 비슷한 유저가 플레이한 게임 아이디 추출
+        """
+        similar_user = self.find_similar_user(request)
+
+        if not similar_user:
+            return []
+        
+        # 본인의 게임 아이디, 가장 비슷한 유저의 게임 아이디 가져오기
+        request_game_id = self.find_game_id(request.user.id)
+        user_game_id = self.find_game_id(similar_user)
+
+        # 본인이 보유한 게임과 가장 비슷한 유저의 게임의 중복 아이템 제거
+        filtered = [x for x in user_game_id if x not in request_game_id]
+
+        return filtered
+    
+
     def search_game(self, request, query):
         """
         게임 추천 원할 시 검색 결과 가져오는 최종 함수
         """
+        similar_user_game = self.find_similar_game(request)
+        user_game = self.find_game_id(request.user.id)
+        
         # 사용자 입력으로부터 관련 태그 추출
         input_tag, search_tag = self.search_tag(request, query)
-
-        user_game = self.find_game_id(request)
         
         # 입력 내용 인식이 어렵거나 유저가 미성년자라 입력 내용이 부적절할 때 바로 안내 문구로 결과 출력
         if search_tag == self.config.not_result_message or search_tag == self.config.restrict_message:
             return {"message":search_tag}
+        
+        # 찾아야 할 게임 아이디, 개수 초기화
+        search_game_id = []
+        num = 0
 
-        # 실제 검색에 사용할 게임 아이디 추출
-        search_game_id = self.search_filter(request, search_tag, input_tag, user_game)
+        # 가장 비슷한 유저가 있을 경우
+        if similar_user_game:
+            for game_id in similar_user_game:
+                game_tag_id = self.get_game_tag(game_id)
+                # 가장 비슷한 유저의 게임 중 본인이 원하는 종류의 게임 추출
+                # 사용자 입력의 태그를 모두 충족하는 게임 추출
+                if all(tag in game_tag_id for tag in input_tag):
+                    # 미성년자의 경우 게임 필터링
+                    if request.user.age < 20:
+                        if not any(tag in game_tag_id[0:7] for tag in self.restrict_id):
+                            search_game_id.append(game_id)
+                            num += 1
+                    else:
+                        search_game_id.append(game_id)
+                        num += 1
 
-        # 검색 결과로 아무런 게임이 없을 때 바로 안내 문구로 결과 출력
-        if search_game_id == self.config.not_result_message or not search_game_id[0]:
-            return {"message": self.config.not_result_message}
+                    # 비슷한 유저의 게임 중 원하는 게임이 다 쌓였을 경우 탈출
+                    if num == 3:
+                        break
+
+            # 사용자 입력의 태그를 모두 충족하는 게임이 없을 시 하나라도 충족하는 게임 추출
+            if num==0:
+                for game_id in similar_user_game:
+                    if any(tag in game_tag_id for tag in input_tag):
+                        # 미성년자의 경우 게임 필터링
+                        if request.user.age < 20:
+                            if not any(tag in game_tag_id[0:7] for tag in self.restrict_id):
+                                search_game_id.append(game_id)
+                                num += 1
+                        else:
+                            search_game_id.append(game_id)
+                            num += 1
+                
+                    # 비슷한 유저의 게임 중 원하는 게임이 다 쌓였을 경우 탈출
+                    if num == 3:
+                        break
+
+        # 사용자 게임에 이미 검색된 게임도 포함
+        user_game.extend(search_game_id)
+        
+        # 비슷한 유저의 게임 중 원하는 게임이 아직 부족할 경우
+        if len(search_game_id) < 3:
+            # 실제 검색에 사용할 게임 아이디 추출
+            search_num = 3-len(search_game_id)
+            game = self.search_filter(
+                request, search_tag, input_tag, search_num, user_game)
+            
+            # 검색 결과가 잘 나왔을 때 결과에 추가
+            if game != self.config.not_result_message or game[0]:
+                search_game_id.extend(game)
+
+        # 취향이 비슷한 유저와 검색의 결과로 아무것도 추출되지 않았을 때
+        if not search_game_id:
+            return {"message":self.config.not_result_message}
+
         
         # 게임 설명 요약 정보
         game_information = {"message": "다음과 같은 게임을 추천드립니다. 😸","game_data": []}
@@ -710,6 +858,7 @@ class Assistant():
                     "long_inform": game_info['long_inform'],
                     "good_review": game_review['good_review'],
                     "bad_review": game_review['bad_review']
+                    
                 })
                 
                 if game_summary:
@@ -720,15 +869,14 @@ class Assistant():
 
         return game_information
 
-
     def search_game_info(self, request, query):
         """
         특정 게임에 대한 정보 원할 시 결과 추출
         """
         # 모델에서 제대로 키워드를 추출하지 못했을 경우 안내 문장 반환
         if not query:
-            return {"message":self.config.not_result_message}
-        
+            return {"message": self.config.not_result_message}
+
         def search_game_name(query):
             """
             추출된 게임 이름으로 가장 먼저 검색되는 게임 아이디 추출
@@ -749,8 +897,9 @@ class Assistant():
             container = soup.find('div', id='search_resultsRows')
 
             # 'search_resultsRows' 안에 있는 직계 <a> 태그 최대 10개 가져오기
-            links = container.find_all('a', recursive=False, limit=10) if container else []
-            
+            links = container.find_all(
+                'a', recursive=False, limit=10) if container else []
+
             # 결과 아무것도 없으면 바로 안내 문구 반환
             if not links:
                 return self.config.not_find_message
@@ -758,7 +907,7 @@ class Assistant():
             # 각 <a> 태그에서 data-ds-appid 속성 추출
             app_ids = []
             count = 0
-            for link in links: 
+            for link in links:
                 appid = link.get('data-ds-appid')
 
                 # 번들과 같이 appid가 없는 대상일 경우 스킵
@@ -768,20 +917,20 @@ class Assistant():
                 # 미성년자일 때 검색 결과 필터링
                 if request.user.age < 20:
                     tagids = link.get('data-ds-tagids')
-                    
+
                     # 인기 태그 정보 없을 때 스킵
                     if not tagids:
                         continue
 
                     if not any(tag in json.loads(tagids) for tag in self.restrict_id):
-                        app_ids.append(appid) 
+                        app_ids.append(appid)
                         count += 1
                     else:
                         return self.config.restrict_message
                 else:
                     app_ids.append(appid)
                     count += 1
-                
+
                 # 수집된 결과 1개 채워졌으면 반복문 탈출
                 if count == 1:
                     break
@@ -793,7 +942,7 @@ class Assistant():
 
         # 사용자가 검색하고자 하는 게임의 id 추출
         game_id = search_game_name(query)
-        
+
         if game_id == self.config.not_find_message or game_id == self.config.restrict_message:
             return {"message": game_id}
 
@@ -809,7 +958,7 @@ class Assistant():
                 "good_review": game_review['good_review'],
                 "bad_review": game_review['bad_review']
             })
-            
+
             if game_summary:
                 game_data['description'] = game_summary['description']
                 game_data['good_review'] = game_summary['good_review']
