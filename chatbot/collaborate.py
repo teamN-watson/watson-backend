@@ -699,34 +699,47 @@ class Collaborations_Assistant():
         # request 유저의 태그 평탄화
         request_user_inform = request_user_data["tag_id"]
         user_flattened_tags = set(itertools.chain.from_iterable(request_user_inform))
-        best_user_id = None
-        max_count = -1
 
-        # 모든 사용자 순회
+        # 비슷도(교집합 개수/요청한 유저 태그 수)와 user_id를 함께 저장할 리스트
+        similarity_list = []
+
         for user_data in user_inform:
             user_id = user_data["user_id"]
+            
+            # 자기 자신은 제외
+            if user_id == request.user.id:
+                continue
+            
+            # 타 유저 태그 평탄화
+            tag_id_nested = user_data["tag_id"]  # 2차원 리스트
+            flattened_tags = set(itertools.chain.from_iterable(tag_id_nested))
 
-            # 모든 사용자 중 본인의 정보는 제외
-            if user_id != request.user.id:
-                tag_id_nested = user_data["tag_id"]  # 2차원 리스트
+            # 교집합 크기 계산
+            intersection_count = len(flattened_tags.intersection(user_flattened_tags))
+            
+            # 교집합 비율 (두 태그 집합의 교집합/요청 유저 태그 수)
+            similarity_ratio = intersection_count / len(user_flattened_tags) if len(user_flattened_tags) > 0 else 0
+            
+            # 0.3 이상인 사용자만 candidate로 추가
+            if similarity_ratio >= 0.3:
+                similarity_list.append({
+                    "user_id": user_id,
+                    "intersection_count": intersection_count,  # 정렬 기준(혹은 similarity_ratio 사용 가능)
+                    "similarity_ratio": similarity_ratio
+                })
 
-                # 2차원 리스트 -> 1차원 리스트로 평탄화
-                flattened_tags = set(
-                itertools.chain.from_iterable(tag_id_nested))
-
-                # 교집합 크기 계산
-                intersection_count = len(
-                    flattened_tags.intersection(user_flattened_tags))
-
-                # 최대값 갱신
-                if intersection_count > max_count:
-                    max_count = intersection_count
-                    best_user_id = user_id
-
-        if max_count/len(user_flattened_tags) < 0.3:
+        # 유의미하게 유사한 유저 한 명도 없을 때 빈 리스트 반환
+        if not similarity_list:
             return []
-                
-        return best_user_id
+
+        # 교집합 크기 혹은 유사도 비율 내림차순 정렬
+        similarity_list.sort(key=lambda x: x["intersection_count"], reverse=True)
+
+        # 최대 3명까지만 추출
+        top_3_users = similarity_list[:3]
+
+        # user_id 리스트만 반환하거나 필요한 형태로 가공
+        return [user["user_id"] for user in top_3_users]
     
 
     def find_game_id(self, user_id):
@@ -764,7 +777,12 @@ class Collaborations_Assistant():
         
         # 본인의 게임 아이디, 가장 비슷한 유저의 게임 아이디 가져오기
         request_game_id = self.find_game_id(request.user.id)
-        user_game_id = self.find_game_id(similar_user)
+
+        # 유사한 게임 아이디 변수 초기화
+        user_game_id = []
+
+        for user_id in similar_user:
+            user_game_id.extend(self.find_game_id(user_id))
 
         # 본인이 보유한 게임과 가장 비슷한 유저의 게임의 중복 아이템 제거
         filtered = [x for x in user_game_id if x not in request_game_id]
@@ -776,6 +794,7 @@ class Collaborations_Assistant():
         """
         게임 추천 원할 시 검색 결과 가져오는 최종 함수
         """
+
         similar_user_game = self.find_similar_game(request)
         user_game = self.find_game_id(request.user.id)
         
