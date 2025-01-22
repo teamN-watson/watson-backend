@@ -243,75 +243,83 @@ def profile(request):
 @api_view(['GET'])
 def get_recommended_games(request):
     print("=== 추천 게임 API 호출 시작 ===")
-    user_tags = request.user.get_steam_tag_names_en()
+    user_tags = set(tag.lower() for tag in request.user.get_steam_tag_names_en())  # set으로 변환하여 검색 속도 향상
+    print("=== 유저 태그 출력 ===")
+    print(user_tags)
     user_age = request.user.age
 
-    # 1. 나이 제한을 만족하는 게임들을 먼저 필터링
-    games = Game.objects.filter(required_age__lte=user_age)
+    # 1. 나이 제한과 metacritic 점수가 있는 게임들만 필터링 (DB 레벨에서 필터링)
+    games = Game.objects.filter(
+        required_age__lte=user_age,
+        metacritic_score__isnull=False
+    ).values(
+        'id', 'appID', 'name', 'header_image', 'price', 
+        'required_age', 'metacritic_score', 'genres', 'genres_kr',
+        'tags', 'categories', 'median_playtime_forever', 'estimated_owners'
+    )
 
-    # 2. 각 게임의 태그 매칭 점수를 계산
+    # 2. 게임 점수 계산을 위한 owners_ranges 미리 정의
+    owners_ranges = {
+        "0 - 20000": 10,
+        "20000 - 50000": 20,
+        "50000 - 100000": 30,
+        "100000 - 200000": 40,
+        "200000 - 500000": 50,
+        "500000 - 1000000": 60,
+        "1000000 - 2000000": 70,
+        "2000000 - 5000000": 80,
+        "5000000 - 10000000": 90,
+        "10000000 - 20000000": 100,
+        "20000000 - 50000000": 110,
+        "50000000 - 100000000": 120,
+        "100000000 - 200000000": 130,
+    }
+
     games_with_scores = []
     for game in games:
-        score = 0
+        # JSON 파싱을 한 번만 수행
+        game_tags = json.loads(game['tags']) if isinstance(game['tags'], str) else game['tags']
+        game_genres = json.loads(game['genres']) if isinstance(game['genres'], str) else game['genres']
+        game_categories = json.loads(game['categories']) if isinstance(game['categories'], str) else game['categories']
         
-        # 2-1. tags 매칭 
-        game_tags = json.loads(game.tags) if isinstance(game.tags, str) else game.tags
-        for tag in game_tags:
-            if any(user_tag.lower() in tag.lower() or tag.lower() in user_tag.lower() for user_tag in user_tags):
-                score += 50  # 태그 매칭에 대한 기본 점수
-        
-        # 2-2. genres 매칭
-        game_genres = json.loads(game.genres) if isinstance(game.genres, str) else game.genres
-        for genre in game_genres:
-            if any(user_tag.lower() in genre.lower() or genre.lower() in user_tag.lower() for user_tag in user_tags):
-                score += 50  # genres 매칭에 대한 기본 점수
-        
-        # 2-3. categories 매칭
-        game_categories = json.loads(game.categories) if isinstance(game.categories, str) else game.categories
-        for category in game_categories:
-            if any(user_tag.lower() in category.lower() or category.lower() in user_tag.lower() for user_tag in user_tags):
-                score += 30  # categories 매칭에 대한 기본 점수
-        
-        # 2-4. 추가 점수 계산
-        score += min(game.median_playtime_forever / 10, 100)  # 플레이타임 점수 (최대 100)
-        
-        # estimated_owners 점수 계산 (범위에 따라 점수 부여)
-        owners_ranges = {
-            "0 - 20000": 10,
-            "20000 - 50000": 20,
-            "50000 - 100000": 30,
-            "100000 - 200000": 40,
-            "200000 - 500000": 50,
-            "500000 - 1000000": 60,
-            "1000000 - 2000000": 70,
-            "2000000 - 5000000": 80,
-            "5000000 - 10000000": 90,
-            "10000000 - 20000000": 100,
-            "20000000 - 50000000": 110,
-            "50000000 - 100000000": 120,
-            "100000000 - 200000000": 130,
-        }
-        score += owners_ranges.get(game.estimated_owners, 0)
-        
-        # metacritic 점수 추가
-        score += game.metacritic_score if game.metacritic_score else 0
-        
-        # 최종 게임 정보와 점수 저장
+        # 태그, 장르, 카테고리를 미리 소문자로 변환하여 set으로 저장
+        game_tags_lower = {tag.lower() for tag in game_tags}
+        game_genres_lower = {genre.lower() for genre in game_genres}
+        game_categories_lower = {category.lower() for category in game_categories}
+
+        # 점수 계산
+        score = (
+            # 태그 매칭 (집합 연산 사용)
+            len(user_tags & game_tags_lower) * 50 +
+            # 장르 매칭
+            len(user_tags & game_genres_lower) * 50 +
+            # 카테고리 매칭
+            len(user_tags & game_categories_lower) * 30 +
+            # 플레이타임 점수
+            min(game['median_playtime_forever'] / 10, 100) +
+            # owners 점수
+            owners_ranges.get(game['estimated_owners'], 0) +
+            # metacritic 점수
+            game['metacritic_score']
+        )
+
+        # 게임 정보와 점수 저장
         games_with_scores.append({
-            'id': game.id,
-            'appID': game.appID,
-            'name': game.name,
-            'header_image': game.header_image,
-            'price': game.price,
-            'required_age': game.required_age,
-            'metacritic_score': game.metacritic_score,
+            'id': game['id'],
+            'appID': game['appID'],
+            'name': game['name'],
+            'header_image': game['header_image'],
+            'price': game['price'],
+            'required_age': game['required_age'],
+            'metacritic_score': game['metacritic_score'],
             'genres': game_genres,
-            'genres_kr': game.genres_kr,
+            'genres_kr': game['genres_kr'],
             'score': score
         })
     
-    # 3. 점수에 따라 정렬하고 상위 50개 선택
-    recommended_games = sorted(games_with_scores, key=lambda x: x['score'], reverse=True)[:50]
+    # 3. 상위 15개 선택 (힙큐 사용)
+    import heapq
+    recommended_games = heapq.nlargest(15, games_with_scores, key=lambda x: x['score'])
     
     return Response({
         'message': '추천 게임 목록입니다.',
