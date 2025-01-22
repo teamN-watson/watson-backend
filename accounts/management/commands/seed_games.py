@@ -27,29 +27,29 @@ class Command(BaseCommand):
                     ]
 
                     # 데이터를 Game 모델에 저장
-                    Game.objects.get_or_create(
-                        appID=int(row['appID']),
-                        name=row['name'],
-                        release_date=row['release_date'],
-                        required_age=int(row['required_age']) if row['required_age'] != '' else 0,
-                        price=float(row['price']) if row['price'] != '' else 0.0,
-                        header_image=row['header_image'],
-                        windows=row['windows'].lower() == 'true',
-                        mac=row['mac'].lower() == 'true',
-                        linux=row['linux'].lower() == 'true',
-                        metacritic_score=int(row['metacritic_score']) if row['metacritic_score'] != '' else 0,
-                        metacritic_url=row['metacritic_url'],
-                        supported_languages=eval(
-                            row["supported_languages"]
-                        ),  # 문자열 -> 리스트 변환
-                        categories=eval(row['categories']) if row['categories'] else [],
-                        genres=ast.literal_eval(row["genres"]),
-                        genres_kr=genres_korean,  # 한글 변환된 genres
-                        screenshots=eval(row['screenshots']) if row['screenshots'] else [],
-                        movies=eval(row['movies']) if row['movies'] else [],
-                        estimated_owners=row['estimated_owners'],
-                        median_playtime_forever=int(row['median_playtime_forever']) if row['median_playtime_forever'] != '' else 0,
-                        tags=eval(row['tags']) if row['tags'] else {}
+                    Game.objects.update_or_create(
+                        appID=int(row['appID']),  # lookup field
+                        defaults={  # 업데이트할 필드들
+                            'name': row['name'],
+                            'release_date': row['release_date'],
+                            'required_age': int(row['required_age']) if row['required_age'] != '' else 0,
+                            'price': float(row['price']) if row['price'] != '' else 0.0,
+                            'header_image': row['header_image'],
+                            'windows': row['windows'].lower() == 'true',
+                            'mac': row['mac'].lower() == 'true',
+                            'linux': row['linux'].lower() == 'true',
+                            'metacritic_score': int(row['metacritic_score']) if row['metacritic_score'] != '' else 0,
+                            'metacritic_url': row['metacritic_url'],
+                            'supported_languages': eval(row["supported_languages"]),
+                            'categories': eval(row['categories']) if row['categories'] else [],
+                            'genres': ast.literal_eval(row["genres"]),
+                            'genres_kr': genres_korean,
+                            'screenshots': eval(row['screenshots']) if row['screenshots'] else [],
+                            'movies': eval(row['movies']) if row['movies'] else [],
+                            'estimated_owners': row['estimated_owners'],
+                            'median_playtime_forever': int(row['median_playtime_forever']) if row['median_playtime_forever'] != '' else 0,
+                            'tags': eval(row['tags']) if row['tags'] else {}
+                        }
                     )
             
             self.stdout.write(
