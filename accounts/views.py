@@ -243,48 +243,88 @@ def get_recommended_games(request):
     print("=== 추천 게임 API 호출 시작 ===")
     
     try:
-        steam_tag_ids = request.user.get_steam_tag_ids()
+        # 사용자의 선호 태그 목록 가져오기 (한글)
+        user_tags = request.user.get_steam_tag_names_ko()
+        print("사용자 선호 태그:", user_tags)
+        
+        if not user_tags:
+            return Response({
+                "message": "선호하는 태그가 없습니다. 관심사를 설정해주세요.",
+                "games": []
+            })
+        
+        # Steam Store 검색 API를 통해 태그별 게임 검색
         all_games = []
-        for app_id in steam_tag_ids:
+        env = environ.Env()
+        api_key = env("STEAM_API_KEY")
+        
+        for tag in user_tags:
             try:
-                # Steam Store API로 게임 정보 가져오기
-                url = f"https://store.steampowered.com/api/appdetails"
+                # Steam Store 검색 API 호출
+                url = "https://store.steampowered.com/api/storesearch"
                 params = {
-                    'appids': app_id,
-                    'language': 'koreana'
+                    'term': tag,
+                    'l': 'koreana',
+                    'cc': 'KR'
                 }
                 
-                print(f"게임 정보 요청: {app_id}")
+                print(f"태그 '{tag}'로 게임 검색 중...")
                 response = requests.get(url, params=params)
                 
                 if response.status_code == 200:
-                    data = response.json()
-                    if data and data.get(str(app_id), {}).get('success'):
-                        game_data = data[str(app_id)]['data']
-                        game = {
-                            'appid': app_id,
-                            'name': game_data.get('name', ''),
-                            'header_image': game_data.get('header_image', ''),
-                            'final_price': game_data.get('price_overview', {}).get('final_formatted', '무료'),
-                            'discount_percent': game_data.get('price_overview', {}).get('discount_percent', 0)
-                        }
-                        all_games.append(game)
-                        print(f"게임 정보 추가됨: {game['name']}")
-                    else:
-                        print(f"게임 정보 없음: {app_id}")
+                    search_data = response.json()
+                    if search_data.get('items'):
+                        # 각 게임의 상세 정보 가져오기
+                        for item in search_data['items'][:5]:  # 태그당 상위 5개만
+                            app_id = item['id']
+                            
+                            # 게임 상세 정보 가져오기
+                            detail_url = f"https://store.steampowered.com/api/appdetails"
+                            detail_params = {
+                                'appids': app_id,
+                                'language': 'koreana'
+                            }
+                            
+                            detail_response = requests.get(detail_url, params=detail_params)
+                            if detail_response.status_code == 200:
+                                detail_data = detail_response.json()
+                                if detail_data and detail_data.get(str(app_id), {}).get('success'):
+                                    game_data = detail_data[str(app_id)]['data']
+                                    
+                                    # 게임의 태그 목록 추출
+                                    game_tags = [tag['description'] for tag in game_data.get('categories', [])]
+                                    game_tags.extend([genre['description'] for genre in game_data.get('genres', [])])
+                                    
+                                    # 태그 유사도 점수 계산
+                                    similarity_score = calculate_tag_similarity(user_tags, game_tags)
+                                    
+                                    game = {
+                                        'appid': app_id,
+                                        'name': game_data.get('name', ''),
+                                        'header_image': game_data.get('header_image', ''),
+                                        'final_price': game_data.get('price_overview', {}).get('final_formatted', '무료'),
+                                        'discount_percent': game_data.get('price_overview', {}).get('discount_percent', 0),
+                                        'similarity_score': similarity_score,
+                                        'matching_tags': list(set(user_tags) & set(game_tags))
+                                    }
+                                    
+                                    # 중복 게임 방지
+                                    if not any(g['appid'] == game['appid'] for g in all_games):
+                                        all_games.append(game)
+                                        print(f"게임 추가됨: {game['name']} (유사도: {similarity_score})")
                 
-                # API 호출 제한을 피하기 위한 딜레이
-                time.sleep(1)
+                time.sleep(0.3)  # API 호출 제한 방지
                 
             except Exception as e:
-                print(f"게임 {app_id} 처리 중 오류 발생: {str(e)}")
+                print(f"태그 {tag} 처리 중 오류 발생: {str(e)}")
                 continue
         
-        print(f"\n전체 검색된 게임 수: {len(all_games)}")
+        # 유사도 점수로 정렬하고 상위 10개 선택
+        sorted_games = sorted(all_games, key=lambda x: x['similarity_score'], reverse=True)[:10]
         
         return Response({
-            "message": "인기 게임 목록입니다.",
-            "games": all_games
+            "message": "추천 게임 목록입니다.",
+            "games": sorted_games
         })
         
     except Exception as e:
@@ -293,6 +333,30 @@ def get_recommended_games(request):
             "message": f"오류가 발생했습니다: {str(e)}",
             "games": []
         }, status=500)
+
+def calculate_tag_similarity(user_tags, game_tags):
+    """
+    사용자 태그와 게임 태그 간의 유사도를 계산
+    """
+    similar_tag_pairs = {
+        '격투': ['스포츠', '액션', '대전격투'],
+        '스포츠': ['격투', '레이싱', '시뮬레이션'],
+        'RPG': ['어드벤처', '액션RPG', '롤플레잉'],
+        '전략': ['시뮬레이션', '전술', 'RTS'],
+        '슈팅': ['액션', 'FPS', 'TPS'],
+    }
+    
+    score = 0
+    for user_tag in user_tags:
+        for game_tag in game_tags:
+            # 정확히 일치하는 경우
+            if user_tag.lower() in game_tag.lower() or game_tag.lower() in user_tag.lower():
+                score += 1
+            # 유사 태그인 경우
+            elif user_tag in similar_tag_pairs and any(similar.lower() in game_tag.lower() for similar in similar_tag_pairs[user_tag]):
+                score += 0.5
+    
+    return score
 
 class MypageAPIView(APIView):
 
@@ -770,4 +834,3 @@ class FriendAPIView(APIView):
         return Response(
             {"message": "친구가 삭제되었습니다."}, status=status.HTTP_204_NO_CONTENT
         )
-
