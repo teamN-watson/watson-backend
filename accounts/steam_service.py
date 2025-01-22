@@ -41,7 +41,9 @@ def sync_new_steam_user_data(account):
         return
     
     # 2) 리뷰 크롤링(최대 3개)
-    driver = webdriver.Chrome()
+    options = webdriver.ChromeOptions()
+    options.add_argument("--headless")
+    driver = webdriver.Chrome(options=options)
     try:
         review_data = fetch_top3_reviews(driver, steam_id_str)
     finally:
