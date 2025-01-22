@@ -13,7 +13,7 @@ from .serializers import (
     GameSerializer,
     GameSearchSerializer,
 )
-from django.db.models import Count
+from django.db.models import Count, Avg
 from accounts.models import Game, Block, Notice
 from django.db.models import Case, When, Value, IntegerField
 from django.core.paginator import Paginator
@@ -422,6 +422,10 @@ class GameDetailAPIView(APIView):
         my_review = None
         clicked_review = None
 
+        # 평균 평점과 평점 개수(리뷰들의 수로) 계산
+        average_score = reviews.aggregate(Avg('score'))['score__avg']
+        total_reviews = reviews.count()
+
         # 사용자가 인증된 경우, 자신의 리뷰 필터링
         if request.user.is_authenticated:
             my_review = reviews.filter(user_id=request.user.id).first()
@@ -458,7 +462,9 @@ class GameDetailAPIView(APIView):
         return Response(
             {
                 "game": game_serializer.data,
-                "video" : result,
+                "video": result,
+                "average_score": average_score,
+                "total_reviews": total_reviews,
                 "my_review": my_review_serializer.data if my_review else None,
                 "clicked_review": (
                     clicked_review_serializer.data if clicked_review else None
