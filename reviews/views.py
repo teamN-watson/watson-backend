@@ -13,7 +13,7 @@ from .serializers import (
     GameSerializer,
     GameSearchSerializer,
 )
-from django.db.models import Count
+from django.db.models import Count, Avg
 from accounts.models import Game, Block, Notice
 from django.db.models import Case, When, Value, IntegerField
 from django.core.paginator import Paginator
@@ -422,6 +422,10 @@ class GameDetailAPIView(APIView):
         my_review = None
         clicked_review = None
 
+        # 평균 평점과 평점 개수(리뷰들의 수로) 계산
+        average_score = reviews.aggregate(Avg('score'))['score__avg']
+        total_reviews = reviews.count()
+
         # 사용자가 인증된 경우, 자신의 리뷰 필터링
         if request.user.is_authenticated:
             my_review = reviews.filter(user_id=request.user.id).first()
@@ -434,6 +438,18 @@ class GameDetailAPIView(APIView):
                 reviews = reviews.exclude(id=review_id)
             except Review.DoesNotExist:
                 clicked_review = None
+        
+        # steam api - changoo
+        steam_data = None
+        try:
+            params = {'appids': game_id, 'l': 'korean'}
+            url = f'https://store.steampowered.com/api/appdetails?{urlencode(params)}'
+            response = requests.get(url)
+            steam_data = response.json()  # 데이터를 steam_data에 저장
+            steam_data = steam_data[game_id]["data"]
+            # steam_data = steam_data[game_id].data
+        except requests.exceptions.RequestException as e:
+            steam_data = {"error": str(e)}  # 에러가 발생한 경우, 에러 메시지를 steam_data에 저장
 
         # 직렬화
         game_serializer = GameSerializer(game)
@@ -446,12 +462,15 @@ class GameDetailAPIView(APIView):
         return Response(
             {
                 "game": game_serializer.data,
-                "video" : result,
+                "video": result,
+                "average_score": average_score,
+                "total_reviews": total_reviews,
                 "my_review": my_review_serializer.data if my_review else None,
                 "clicked_review": (
                     clicked_review_serializer.data if clicked_review else None
                 ),
                 "reviews": other_reviews_serializer.data,
+                "steam_data" : steam_data
             }
         )
 
@@ -517,14 +536,3 @@ class GameSearchAPIView(APIView):
             status=status.HTTP_200_OK,
         )
 
-
-def get_game_details(request, app_id):
-    try:
-        params = {'appids': app_id, 'l': 'korean'}
-        url = f'https://store.steampowered.com/api/appdetails?{urlencode(params)}'
-        response = requests.get(url)
-        data = response.json()
-        print(data)
-        return JsonResponse(data)
-    except requests.exceptions.RequestException as e:
-        return JsonResponse({"error": str(e)}, status=500)

@@ -30,8 +30,4 @@ urlpatterns = [
     
     # 리뷰 작성 시 게임 정보
     path("games/search/", views.GameSearchAPIView.as_view(), name="game_search"),  # /api/reviews/games/search/
-    
-    # 게임 정보 steam api
-    path('game/<int:app_id>/', views.get_game_details, name='get_game_details'), # /api/reviews/game/<app_id>
-
-    ]
+]
