@@ -116,13 +116,13 @@ class Account(AbstractBaseUser):
     def __str__(self):
         return self.user_id
     
-    def get_steam_tag_names_ko(self):
+    def get_steam_tag_names_en(self):
         """
         4단계로 태그 정보를 추출합니다:
         1. AccountInterest에서 interest_id 목록 추출
         2. InterestTag에서 tag_id 목록 추출
         3. Tag에서 steam_tag_id 목록 추출
-        4. Tag에서 steam_tag_id에 해당하는 name_ko 목록 추출
+        4. Tag에서 steam_tag_id에 해당하는 name_en 목록 추출
         """
         # 1단계: AccountInterest에서 interest_id 목록 추출
         interest_ids = AccountInterest.objects.filter(
@@ -141,10 +141,10 @@ class Account(AbstractBaseUser):
             steam_tag_id=0
         ).values_list('steam_tag_id', flat=True).distinct()
 
-        # 4단계: steam_tag_id에 해당하는 name_ko 목록 추출
+        # 4단계: steam_tag_id에 해당하는 name_en 목록 추출
         return list(Tag.objects.filter(
             steam_tag_id__in=steam_tag_ids
-        ).values_list('name_ko', flat=True).distinct())
+        ).values_list('name_en', flat=True).distinct())
 
 
 class Notice(models.Model):

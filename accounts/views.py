@@ -9,6 +9,7 @@ from .models import (
     Notice,
     FriendRequest,
     Friend,
+    Game,
 )
 
 from .serializers import (
@@ -242,122 +243,81 @@ def profile(request):
 @api_view(['GET'])
 def get_recommended_games(request):
     print("=== 추천 게임 API 호출 시작 ===")
-    
-    try:
-        # 사용자의 선호 태그 목록 가져오기 (한글)
-        user_tags = request.user.get_steam_tag_names_ko()
-        print("사용자 선호 태그:", user_tags)
-        
-        if not user_tags:
-            return Response({
-                "message": "선호하는 태그가 없습니다. 관심사를 설정해주세요.",
-                "games": []
-            })
-        
-        # Steam Store 검색 API를 통해 태그별 게임 검색
-        all_games = []
-        env = environ.Env()
-        api_key = env("STEAM_API_KEY")
-        
-        for tag in user_tags:
-            try:
-                # Steam Store 검색 API 호출
-                url = "https://store.steampowered.com/api/storesearch"
-                params = {
-                    'term': tag,
-                    'l': 'koreana',
-                    'cc': 'KR'
-                }
-                
-                print(f"태그 '{tag}'로 게임 검색 중...")
-                response = requests.get(url, params=params)
-                
-                if response.status_code == 200:
-                    search_data = response.json()
-                    if search_data.get('items'):
-                        # 각 게임의 상세 정보 가져오기
-                        for item in search_data['items'][:5]:  # 태그당 상위 5개만
-                            app_id = item['id']
-                            
-                            # 게임 상세 정보 가져오기
-                            detail_url = f"https://store.steampowered.com/api/appdetails"
-                            detail_params = {
-                                'appids': app_id,
-                                'language': 'koreana'
-                            }
-                            
-                            detail_response = requests.get(detail_url, params=detail_params)
-                            if detail_response.status_code == 200:
-                                detail_data = detail_response.json()
-                                if detail_data and detail_data.get(str(app_id), {}).get('success'):
-                                    game_data = detail_data[str(app_id)]['data']
-                                    
-                                    # 게임의 태그 목록 추출
-                                    game_tags = [tag['description'] for tag in game_data.get('categories', [])]
-                                    game_tags.extend([genre['description'] for genre in game_data.get('genres', [])])
-                                    
-                                    # 태그 유사도 점수 계산
-                                    similarity_score = calculate_tag_similarity(user_tags, game_tags)
-                                    
-                                    game = {
-                                        'appid': app_id,
-                                        'name': game_data.get('name', ''),
-                                        'header_image': game_data.get('header_image', ''),
-                                        'final_price': game_data.get('price_overview', {}).get('final_formatted', '무료'),
-                                        'discount_percent': game_data.get('price_overview', {}).get('discount_percent', 0),
-                                        'similarity_score': similarity_score,
-                                        'matching_tags': list(set(user_tags) & set(game_tags))
-                                    }
-                                    
-                                    # 중복 게임 방지
-                                    if not any(g['appid'] == game['appid'] for g in all_games):
-                                        all_games.append(game)
-                                        print(f"게임 추가됨: {game['name']} (유사도: {similarity_score})")
-                
-                time.sleep(0.3)  # API 호출 제한 방지
-                
-            except Exception as e:
-                print(f"태그 {tag} 처리 중 오류 발생: {str(e)}")
-                continue
-        
-        # 유사도 점수로 정렬하고 상위 10개 선택
-        sorted_games = sorted(all_games, key=lambda x: x['similarity_score'], reverse=True)[:10]
-        
-        return Response({
-            "message": "추천 게임 목록입니다.",
-            "games": sorted_games
-        })
-        
-    except Exception as e:
-        print(f"치명적 오류 발생: {str(e)}")
-        return Response({
-            "message": f"오류가 발생했습니다: {str(e)}",
-            "games": []
-        }, status=500)
+    user_tags = request.user.get_steam_tag_names_en()
+    user_age = request.user.age
 
-def calculate_tag_similarity(user_tags, game_tags):
-    """
-    사용자 태그와 게임 태그 간의 유사도를 계산
-    """
-    similar_tag_pairs = {
-        '격투': ['스포츠', '액션', '대전격투'],
-        '스포츠': ['격투', '레이싱', '시뮬레이션'],
-        'RPG': ['어드벤처', '액션RPG', '롤플레잉'],
-        '전략': ['시뮬레이션', '전술', 'RTS'],
-        '슈팅': ['액션', 'FPS', 'TPS'],
-    }
+    # 1. 나이 제한을 만족하는 게임들을 먼저 필터링
+    games = Game.objects.filter(required_age__lte=user_age)
+
+    # 2. 각 게임의 태그 매칭 점수를 계산
+    games_with_scores = []
+    for game in games:
+        score = 0
+        
+        # 2-1. tags 매칭 
+        game_tags = json.loads(game.tags) if isinstance(game.tags, str) else game.tags
+        for tag in game_tags:
+            if any(user_tag.lower() in tag.lower() or tag.lower() in user_tag.lower() for user_tag in user_tags):
+                score += 50  # 태그 매칭에 대한 기본 점수
+        
+        # 2-2. genres 매칭
+        game_genres = json.loads(game.genres) if isinstance(game.genres, str) else game.genres
+        for genre in game_genres:
+            if any(user_tag.lower() in genre.lower() or genre.lower() in user_tag.lower() for user_tag in user_tags):
+                score += 50  # genres 매칭에 대한 기본 점수
+        
+        # 2-3. categories 매칭
+        game_categories = json.loads(game.categories) if isinstance(game.categories, str) else game.categories
+        for category in game_categories:
+            if any(user_tag.lower() in category.lower() or category.lower() in user_tag.lower() for user_tag in user_tags):
+                score += 30  # categories 매칭에 대한 기본 점수
+        
+        # 2-4. 추가 점수 계산
+        score += min(game.median_playtime_forever / 10, 100)  # 플레이타임 점수 (최대 100)
+        
+        # estimated_owners 점수 계산 (범위에 따라 점수 부여)
+        owners_ranges = {
+            "0 - 20000": 10,
+            "20000 - 50000": 20,
+            "50000 - 100000": 30,
+            "100000 - 200000": 40,
+            "200000 - 500000": 50,
+            "500000 - 1000000": 60,
+            "1000000 - 2000000": 70,
+            "2000000 - 5000000": 80,
+            "5000000 - 10000000": 90,
+            "10000000 - 20000000": 100,
+            "20000000 - 50000000": 110,
+            "50000000 - 100000000": 120,
+            "100000000 - 200000000": 130,
+        }
+        score += owners_ranges.get(game.estimated_owners, 0)
+        
+        # metacritic 점수 추가
+        score += game.metacritic_score if game.metacritic_score else 0
+        
+        # 최종 게임 정보와 점수 저장
+        games_with_scores.append({
+            'id': game.id,
+            'appID': game.appID,
+            'name': game.name,
+            'header_image': game.header_image,
+            'price': game.price,
+            'required_age': game.required_age,
+            'metacritic_score': game.metacritic_score,
+            'genres': game_genres,
+            'genres_kr': game.genres_kr,
+            'score': score
+        })
     
-    score = 0
-    for user_tag in user_tags:
-        for game_tag in game_tags:
-            # 정확히 일치하는 경우
-            if user_tag.lower() in game_tag.lower() or game_tag.lower() in user_tag.lower():
-                score += 1
-            # 유사 태그인 경우
-            elif user_tag in similar_tag_pairs and any(similar.lower() in game_tag.lower() for similar in similar_tag_pairs[user_tag]):
-                score += 0.5
+    # 3. 점수에 따라 정렬하고 상위 50개 선택
+    recommended_games = sorted(games_with_scores, key=lambda x: x['score'], reverse=True)[:50]
     
-    return score
+    return Response({
+        'message': '추천 게임 목록입니다.',
+        'games': recommended_games
+    }, status=status.HTTP_200_OK)
+
 
 class MypageAPIView(APIView):
 
