@@ -295,26 +295,15 @@ class MypageAPIView(APIView):
         user = request.user
 
         if user.id is not None and user.is_active:
-            serializer = AccountDeleteSerializer(
-                instance=user, data=request.data, partial=True
+            user.delete()
+            data = {"message": "user deleted."}
+
+            # ++ 토큰은 어떻게 처리?
+            return Response(data, status=status.HTTP_200_OK)
+        else:
+            return Response(
+                {"message": "잘못된 접근입니다."}, status=status.HTTP_400_BAD_REQUEST
             )
-            if serializer.is_valid(raise_exception=True):
-                password = serializer.validated_data["password"]
-                # 비밀번호가 동일한 경우 유저 삭제 진행
-                if check_password(password, user.password):
-                    user.delete()
-                    data = {"message": "user deleted."}
-
-                    # ++ 토큰은 어떻게 처리?
-                    return Response(data, status=status.HTTP_200_OK)
-                return Response(
-                    {"message": "Password does not match."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-        return Response(
-            {"message": "잘못된 접근입니다."}, status=status.HTTP_400_BAD_REQUEST
-        )
 
 
 @api_view(["GET"])

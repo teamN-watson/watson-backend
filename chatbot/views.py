@@ -26,7 +26,7 @@ class ChatbotRecordAPIView(APIView):
             account_id=request.user.id).first()
         
         if not conversation:
-            return Response({"message": "생성된 채팅방이 없습니다."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"message": "생성된 채팅방이 없습니다."}, status=status.HTTP_204_NO_CONTENT)
         
         messages = Message.objects.filter(conversation=conversation).order_by('created_at')
         serializer = MessageSerializer(messages, many=True)
