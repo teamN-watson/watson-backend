@@ -434,6 +434,18 @@ class GameDetailAPIView(APIView):
                 reviews = reviews.exclude(id=review_id)
             except Review.DoesNotExist:
                 clicked_review = None
+        
+        # steam api - changoo
+        steam_data = None
+        try:
+            params = {'appids': game_id, 'l': 'korean'}
+            url = f'https://store.steampowered.com/api/appdetails?{urlencode(params)}'
+            response = requests.get(url)
+            steam_data = response.json()  # 데이터를 steam_data에 저장
+            steam_data = steam_data[game_id]["data"]
+            # steam_data = steam_data[game_id].data
+        except requests.exceptions.RequestException as e:
+            steam_data = {"error": str(e)}  # 에러가 발생한 경우, 에러 메시지를 steam_data에 저장
 
         # 직렬화
         game_serializer = GameSerializer(game)
@@ -452,6 +464,7 @@ class GameDetailAPIView(APIView):
                     clicked_review_serializer.data if clicked_review else None
                 ),
                 "reviews": other_reviews_serializer.data,
+                "steam_data" : steam_data
             }
         )
 
@@ -517,14 +530,3 @@ class GameSearchAPIView(APIView):
             status=status.HTTP_200_OK,
         )
 
-
-def get_game_details(request, app_id):
-    try:
-        params = {'appids': app_id, 'l': 'korean'}
-        url = f'https://store.steampowered.com/api/appdetails?{urlencode(params)}'
-        response = requests.get(url)
-        data = response.json()
-        print(data)
-        return JsonResponse(data)
-    except requests.exceptions.RequestException as e:
-        return JsonResponse({"error": str(e)}, status=500)
