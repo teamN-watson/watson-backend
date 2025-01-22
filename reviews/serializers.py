@@ -108,6 +108,32 @@ class ReviewSerializer(serializers.ModelSerializer):
             "categories",
             "content_display",
         ]
+        
+        extra_kwargs = {
+            "content": {
+                "required": True,
+                "error_messages": {
+                    "required": "리뷰 내용을 입력해야 합니다.",
+                    "blank": "리뷰 내용은 비워둘 수 없습니다.",
+                },
+            },
+            "score": {
+                "required": True,
+                "error_messages": {
+                    "required": "평점을 입력해야 합니다.",
+                    "invalid": "올바른 평점을 입력해주세요.",
+                    "blank": "평점은 비워둘 수 없습니다.",
+                },
+            },
+            "app_id": {
+                "required": True,
+                "error_messages": {
+                    "required": "게임 ID(app_id)는 필수입니다.",
+                    "invalid": "올바른 게임 ID를 입력해주세요.",
+                    "blank": "게임 ID는 비워둘 수 없습니다.",
+                },
+            },
+        }
 
     def get_nickname(self, obj):
         """유저 닉네임 반환 (유저가 없으면 '알수없음')"""
