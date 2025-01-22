@@ -10,23 +10,23 @@ class Game(models.Model):
     appID = models.IntegerField(unique=True, db_index=True)  # Steam App ID
     name = models.CharField(max_length=255)  # 게임 이름
     release_date = models.CharField(max_length=100)
-    required_age = models.IntegerField()
-    price = models.FloatField()
+    required_age = models.IntegerField(default=0)
+    price = models.FloatField(default=0.0)
     header_image = models.URLField(max_length=300)
-    windows = models.BooleanField()
-    mac = models.BooleanField()
-    linux = models.BooleanField()
-    metacritic_score = models.IntegerField()
+    windows = models.BooleanField(default=False)
+    mac = models.BooleanField(default=False)
+    linux = models.BooleanField(default=False)
+    metacritic_score = models.IntegerField(default=0)
     metacritic_url = models.URLField(max_length=300, blank=True)
-    supported_languages = models.JSONField()
-    categories = models.JSONField()
-    genres = models.JSONField()  # 장르 (JSON 형식으로 저장)
-    genres_kr = models.JSONField()  # 장르 (JSON 형식으로 저장)
-    screenshots = models.JSONField()
-    movies = models.JSONField()
+    supported_languages = models.JSONField(default=list)
+    categories = models.JSONField(default=list)
+    genres = models.JSONField(default=list)  # 장르 (JSON 형식으로 저장)
+    genres_kr = models.JSONField(default=list)  # 한글로 변환된 장르
+    screenshots = models.JSONField(default=list)
+    movies = models.JSONField(default=list)
     estimated_owners = models.CharField(max_length=100)
-    median_playtime_forever = models.IntegerField()
-    tags = models.JSONField()
+    median_playtime_forever = models.IntegerField(default=0)
+    tags = models.JSONField(default=dict)
 
     def __str__(self):
         return self.name
