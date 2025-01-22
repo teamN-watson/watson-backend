@@ -520,12 +520,9 @@ class GameSearchAPIView(APIView):
 
 def get_game_details(request, app_id):
     try:
-        params = {'appids': app_id, 'language': 'korean'}
-        headers = {
-            'Cache-Control': 'no-cache',  # 캐시를 사용하지 않도록 설정
-        }
+        params = {'appids': app_id, 'l': 'korean'}
         url = f'https://store.steampowered.com/api/appdetails?{urlencode(params)}'
-        response = requests.get(url, headers=headers)
+        response = requests.get(url)
         data = response.json()
         print(data)
         return JsonResponse(data)
