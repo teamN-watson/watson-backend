@@ -2,20 +2,34 @@ from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from accounts.utils import OverwriteStorage, rename_imagefile_to_uid
 from django.conf import settings
+from django.db.models import Q
 
 
 class Game(models.Model):
     db_table = "accounts_game"
     appID = models.IntegerField(unique=True, db_index=True)  # Steam App ID
     name = models.CharField(max_length=255)  # 게임 이름
-    supported_languages = models.JSONField()  # 지원 언어 (JSON 형식으로 저장)
-    genres = models.JSONField()  # 장르 (JSON 형식으로 저장)
-    genres_kr = models.JSONField()  # 장르 (JSON 형식으로 저장)
-    header_image = models.URLField()  # 헤더 이미지 URL
+    release_date = models.CharField(max_length=100)
+    required_age = models.IntegerField(default=0)
+    price = models.FloatField(default=0.0)
+    header_image = models.URLField(max_length=300)
+    windows = models.BooleanField(default=False)
+    mac = models.BooleanField(default=False)
+    linux = models.BooleanField(default=False)
+    metacritic_score = models.IntegerField(default=0)
+    metacritic_url = models.URLField(max_length=300, blank=True)
+    supported_languages = models.JSONField(default=list)
+    categories = models.JSONField(default=list)
+    genres = models.JSONField(default=list)  # 장르 (JSON 형식으로 저장)
+    genres_kr = models.JSONField(default=list)  # 한글로 변환된 장르
+    screenshots = models.JSONField(default=list)
+    movies = models.JSONField(default=list)
+    estimated_owners = models.CharField(max_length=100)
+    median_playtime_forever = models.IntegerField(default=0)
+    tags = models.JSONField(default=dict)
 
     def __str__(self):
         return self.name
-
 
 class Tag(models.Model):  # 게임의 태그
     name_en = models.CharField(max_length=50, unique=True)
@@ -101,6 +115,36 @@ class Account(AbstractBaseUser):
 
     def __str__(self):
         return self.user_id
+    
+    def get_steam_tag_names_en(self):
+        """
+        4단계로 태그 정보를 추출합니다:
+        1. AccountInterest에서 interest_id 목록 추출
+        2. InterestTag에서 tag_id 목록 추출
+        3. Tag에서 steam_tag_id 목록 추출
+        4. Tag에서 steam_tag_id에 해당하는 name_en 목록 추출
+        """
+        # 1단계: AccountInterest에서 interest_id 목록 추출
+        interest_ids = AccountInterest.objects.filter(
+            account=self
+        ).values_list('interest_id', flat=True)
+
+        # 2단계: InterestTag에서 tag_id 목록 추출
+        tag_ids = InterestTag.objects.filter(
+            interest_id__in=interest_ids
+        ).values_list('tag_id', flat=True)
+
+        # 3단계: Tag에서 steam_tag_id 목록 추출
+        steam_tag_ids = Tag.objects.filter(
+            id__in=tag_ids
+        ).exclude(
+            steam_tag_id=0
+        ).values_list('steam_tag_id', flat=True).distinct()
+
+        # 4단계: steam_tag_id에 해당하는 name_en 목록 추출
+        return list(Tag.objects.filter(
+            steam_tag_id__in=steam_tag_ids
+        ).values_list('name_en', flat=True).distinct())
 
 
 class Notice(models.Model):

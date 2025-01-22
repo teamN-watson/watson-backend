@@ -1,4 +1,4 @@
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.views import APIView
 
 from .models import (
@@ -9,6 +9,7 @@ from .models import (
     Notice,
     FriendRequest,
     Friend,
+    Game,
 )
 
 from .serializers import (
@@ -29,7 +30,6 @@ from rest_framework.response import Response
 from django.http import JsonResponse, HttpResponse
 
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.decorators import permission_classes
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from rest_framework_simplejwt.exceptions import TokenError
@@ -44,8 +44,9 @@ import requests
 from urllib import parse
 import json
 from django.contrib.auth import login
-
+import environ
 from accounts import serializers
+import time
 
 
 @api_view(["POST"])
@@ -238,6 +239,84 @@ def profile(request):
         )
     else:
         return Response({"message": "Invalid request."}, status=400)
+
+@api_view(['GET'])
+def get_recommended_games(request):
+    print("=== 추천 게임 API 호출 시작 ===")
+    user_tags = request.user.get_steam_tag_names_en()
+    user_age = request.user.age
+
+    # 1. 나이 제한을 만족하는 게임들을 먼저 필터링
+    games = Game.objects.filter(required_age__lte=user_age)
+
+    # 2. 각 게임의 태그 매칭 점수를 계산
+    games_with_scores = []
+    for game in games:
+        score = 0
+        
+        # 2-1. tags 매칭 
+        game_tags = json.loads(game.tags) if isinstance(game.tags, str) else game.tags
+        for tag in game_tags:
+            if any(user_tag.lower() in tag.lower() or tag.lower() in user_tag.lower() for user_tag in user_tags):
+                score += 50  # 태그 매칭에 대한 기본 점수
+        
+        # 2-2. genres 매칭
+        game_genres = json.loads(game.genres) if isinstance(game.genres, str) else game.genres
+        for genre in game_genres:
+            if any(user_tag.lower() in genre.lower() or genre.lower() in user_tag.lower() for user_tag in user_tags):
+                score += 50  # genres 매칭에 대한 기본 점수
+        
+        # 2-3. categories 매칭
+        game_categories = json.loads(game.categories) if isinstance(game.categories, str) else game.categories
+        for category in game_categories:
+            if any(user_tag.lower() in category.lower() or category.lower() in user_tag.lower() for user_tag in user_tags):
+                score += 30  # categories 매칭에 대한 기본 점수
+        
+        # 2-4. 추가 점수 계산
+        score += min(game.median_playtime_forever / 10, 100)  # 플레이타임 점수 (최대 100)
+        
+        # estimated_owners 점수 계산 (범위에 따라 점수 부여)
+        owners_ranges = {
+            "0 - 20000": 10,
+            "20000 - 50000": 20,
+            "50000 - 100000": 30,
+            "100000 - 200000": 40,
+            "200000 - 500000": 50,
+            "500000 - 1000000": 60,
+            "1000000 - 2000000": 70,
+            "2000000 - 5000000": 80,
+            "5000000 - 10000000": 90,
+            "10000000 - 20000000": 100,
+            "20000000 - 50000000": 110,
+            "50000000 - 100000000": 120,
+            "100000000 - 200000000": 130,
+        }
+        score += owners_ranges.get(game.estimated_owners, 0)
+        
+        # metacritic 점수 추가
+        score += game.metacritic_score if game.metacritic_score else 0
+        
+        # 최종 게임 정보와 점수 저장
+        games_with_scores.append({
+            'id': game.id,
+            'appID': game.appID,
+            'name': game.name,
+            'header_image': game.header_image,
+            'price': game.price,
+            'required_age': game.required_age,
+            'metacritic_score': game.metacritic_score,
+            'genres': game_genres,
+            'genres_kr': game.genres_kr,
+            'score': score
+        })
+    
+    # 3. 점수에 따라 정렬하고 상위 50개 선택
+    recommended_games = sorted(games_with_scores, key=lambda x: x['score'], reverse=True)[:50]
+    
+    return Response({
+        'message': '추천 게임 목록입니다.',
+        'games': recommended_games
+    }, status=status.HTTP_200_OK)
 
 
 class MypageAPIView(APIView):
