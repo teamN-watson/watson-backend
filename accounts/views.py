@@ -473,8 +473,11 @@ def steam_callback(request):
     print(steam_id, user_id)
     # 'openid.claimed_id'가 존재하는 경우, 스팀 ID 추출
     if steam_id:
-        if user_id:
+        if user_id and page == "mypage":
+            if Account.objects.filter(steamId=steam_id).count() > 0:
+                return Response({"message": "이미 연동된 스팀ID입니다."}, status=400)
             try:
+                
                 account = Account.objects.get(user_id=user_id)
                 account.steamId = steam_id
                 account.save()
