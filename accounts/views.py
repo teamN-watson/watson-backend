@@ -243,20 +243,57 @@ def profile(request):
 @api_view(['GET'])
 def get_recommended_games(request):
     print("=== 추천 게임 API 호출 시작 ===")
-    user_tags = set(tag.lower() for tag in request.user.get_steam_tag_names_en())  # set으로 변환하여 검색 속도 향상
+    user = request.user
+    user_tags = set(tag.lower() for tag in user.get_steam_tag_names_en())
     print("=== 유저 태그 출력 ===")
     print(user_tags)
-    user_age = request.user.age
+    user_age = user.age
 
-    # 1. 나이 제한과 metacritic 점수가 있는 게임들만 필터링 (DB 레벨에서 필터링)
+    # 사용자가 보유한 게임의 appID 목록 가져오기
+    owned_game_ids = set()
+    if user.steamId:
+        try:
+            env = environ.Env()
+            api_key = env("STEAM_API_KEY")
+            api_url = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/"
+            params = {
+                "key": api_key,
+                "steamid": user.steamId,
+                "include_appinfo": True,
+            }
+            response = requests.get(api_url, params=params)
+            
+            if response.status_code == 200:
+                owned_games = response.json()["response"].get("games", [])
+                owned_game_ids = {game["appid"] for game in owned_games}
+                print("=== 보유한 게임 목록 ===")
+                print(f"총 {len(owned_game_ids)}개의 게임 보유")
+                print("게임 ID 목록:", owned_game_ids)
+        except:
+            print("스팀 게임 목록 조회 실패")
+
+    # 제외되기 전 전체 게임 수 확인
+    total_games = Game.objects.filter(
+        required_age__lte=user_age,
+        metacritic_score__isnull=False
+    ).count()
+
+    # 1. 나이 제한, metacritic 점수가 있고 보유하지 않은 게임들만 필터링
     games = Game.objects.filter(
         required_age__lte=user_age,
         metacritic_score__isnull=False
+    ).exclude(
+        appID__in=owned_game_ids  # 보유한 게임 제외
     ).values(
         'id', 'appID', 'name', 'header_image', 'price', 
         'required_age', 'metacritic_score', 'genres', 'genres_kr',
         'tags', 'categories', 'median_playtime_forever', 'estimated_owners'
     )
+
+    print("=== 게임 필터링 결과 ===")
+    print(f"필터링 전 게임 수: {total_games}")
+    print(f"필터링 후 게임 수: {len(games)}")
+    print(f"제외된 게임 수: {total_games - len(games)}")
 
     # 2. 게임 점수 계산을 위한 owners_ranges 미리 정의
     owners_ranges = {
