@@ -37,4 +37,5 @@ urlpatterns = [
     path("notice/<int:notice_id>/", views.NoticeDetailAPIView.as_view(), name="notice_detail"),
     path("friend_request/", views.FriendRequestAPIView.as_view(), name="friend_request"),
     path("friend/", views.FriendAPIView.as_view(), name="friend"),
+    path("recommended_games/", views.get_recommended_games, name="recommended_games"),
 ]

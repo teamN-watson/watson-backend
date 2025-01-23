@@ -13,9 +13,14 @@ from .serializers import (
     GameSerializer,
     GameSearchSerializer,
 )
-from django.db.models import Count
+from django.db.models import Count, Avg
 from accounts.models import Game, Block, Notice
 from django.db.models import Case, When, Value, IntegerField
+from django.core.paginator import Paginator
+from django.http import JsonResponse
+from urllib.parse import urlencode
+from reviews.youtube import SearchYoutube
+import requests
 
 
 class ReviewAPIView(APIView):
@@ -391,31 +396,81 @@ class GameDetailAPIView(APIView):
 
     permission_classes = [AllowAny]
 
-    def get(self, request, app_id):
+    def get(self, request):
+        # 쿼리 파라미터에서 game_id와 review_id 가져오기
+        game_id = request.query_params.get("game_id")
+        review_id = request.query_params.get("review_id")
+
+        # game_id가 없을 경우 에러 반환
+        if not game_id:
+            return Response({"error": "game_id is required."}, status=400)
+
         # Game 객체 가져오기
-        game = get_object_or_404(Game, appID=app_id)
+        game = get_object_or_404(Game, appID=game_id)
+
+        # Game 이름만 추출
+        game_name = game.name
+
+        # 유튜브 영상 검색 함수 호출 (환경변수)
+        searcher = SearchYoutube.from_env()
+
+        # 특정 쿼리에 대해 가장 인기도 높은 10분 이하 영상 한 개 검색
+        result = searcher.search_videos(query=game_name+" 게임", max_results=10)
 
         # 리뷰 가져오기
-        reviews = Review.objects.filter(app_id=app_id)
-        my_review = None  # 기본값 설정
+        reviews = Review.objects.filter(app_id=game_id)
+        my_review = None
+        clicked_review = None
 
-        # 사용자가 인증된 경우에만 자신의 리뷰 필터링
+        # 평균 평점과 평점 개수(리뷰들의 수로) 계산
+        average_score = reviews.aggregate(Avg('score'))['score__avg']
+        total_reviews = reviews.count()
+
+        # 사용자가 인증된 경우, 자신의 리뷰 필터링
         if request.user.is_authenticated:
-            my_review = reviews.filter(
-                user_id=request.user.id
-            ).first()  # user_id로 매칭
+            my_review = reviews.filter(user_id=request.user.id).first()
             reviews = reviews.exclude(user_id=request.user.id)
+
+        # review_id가 있는 경우, 해당 리뷰를 clicked_review로 설정
+        if review_id:
+            try:
+                clicked_review = reviews.get(id=review_id)
+                reviews = reviews.exclude(id=review_id)
+            except Review.DoesNotExist:
+                clicked_review = None
+        
+        # steam api - changoo
+        steam_data = None
+        try:
+            params = {'appids': game_id, 'l': 'korean'}
+            url = f'https://store.steampowered.com/api/appdetails?{urlencode(params)}'
+            response = requests.get(url)
+            steam_data = response.json()  # 데이터를 steam_data에 저장
+            steam_data = steam_data[game_id]["data"]
+            # steam_data = steam_data[game_id].data
+        except requests.exceptions.RequestException as e:
+            steam_data = {"error": str(e)}  # 에러가 발생한 경우, 에러 메시지를 steam_data에 저장
 
         # 직렬화
         game_serializer = GameSerializer(game)
         my_review_serializer = ReviewSerializer(my_review) if my_review else None
+        clicked_review_serializer = (
+            ReviewSerializer(clicked_review) if clicked_review else None
+        )
         other_reviews_serializer = ReviewSerializer(reviews, many=True)
 
         return Response(
             {
                 "game": game_serializer.data,
+                "video": result,
+                "average_score": average_score,
+                "total_reviews": total_reviews,
                 "my_review": my_review_serializer.data if my_review else None,
+                "clicked_review": (
+                    clicked_review_serializer.data if clicked_review else None
+                ),
                 "reviews": other_reviews_serializer.data,
+                "steam_data" : steam_data
             }
         )
 
@@ -427,6 +482,8 @@ class GameSearchAPIView(APIView):
 
     def get(self, request, *args, **kwargs):
         query = request.query_params.get("q", "").strip()
+        page = request.query_params.get("page", 1)  # 현재 페이지 (기본값 1)
+
         if not query:
             return Response(
                 {"detail": "검색어를 입력하세요."}, status=status.HTTP_400_BAD_REQUEST
@@ -445,10 +502,37 @@ class GameSearchAPIView(APIView):
             )
             .order_by("priority", "name")
         )  # 우선순위와 이름으로 정렬
+        paginator = Paginator(games, 10)  # 페이지당 10개씩 표시
+
+        # 현재 페이지 데이터 가져오기
+        try:
+            page_obj = paginator.page(page)
+        except Exception as e:
+            Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         if not games.exists():
             return Response(
                 {"detail": "검색 결과가 없습니다."}, status=status.HTTP_404_NOT_FOUND
             )
 
-        serializer = GameSearchSerializer(games, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        # serializer = GameSearchSerializer(games, many=True)
+        return Response(
+            {
+                "games": [
+                    {
+                        "appID": game.appID,
+                        "name": game.name,
+                        "header_image": game.header_image,
+                        "genres": game.genres_kr,
+                    }
+                    for game in page_obj
+                ],
+                "has_next": page_obj.has_next(),  # 다음 페이지 존재 여부
+                "current_page": page_obj.number,
+            },
+            status=status.HTTP_200_OK,
+        )
+
