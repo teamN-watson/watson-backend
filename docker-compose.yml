@@ -7,11 +7,6 @@ services:
       - postgres_data:/var/lib/postgresql/data
     env_file:
       - .env
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U anem1c -d watson"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   django:
     build: .
@@ -26,8 +21,7 @@ services:
     expose:
       - 8000
     depends_on:
-      db:
-        condition: service_healthy
+      - db
     env_file:
       - .env
     healthcheck:
