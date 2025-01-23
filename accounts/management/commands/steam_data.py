@@ -25,7 +25,7 @@ class Command(BaseCommand):
 
         # 2) Selenium WebDriver 준비 (#Headless 예시)
         options = webdriver.ChromeOptions()
-        # options.add_argument("--headless")
+        options.add_argument("--headless")
         driver = webdriver.Chrome(options=options)
 
         # 3) steamId가 비어있지 않은 Account를 모두 가져온다
