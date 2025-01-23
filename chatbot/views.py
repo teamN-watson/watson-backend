@@ -113,16 +113,44 @@ class ChatbotAPIView(APIView):
 
         bot_serializer = MessageSerializer(data=bot_message)
 
-        if user_serializer.is_valid():
-            if bot_serializer.is_valid():
-                user_serializer.save()
-                bot_serializer.save()
-            
-            else:
-                return Response({"message": "AI 봇의 응답이 유효하지 않습니다."}, status=status.HTTP_400_BAD_REQUEST)
-        else:
+        # 4) 유효성 검사 및 저장
+        if not user_serializer.is_valid():
             return Response({"message": "사용자의 입력이 유효하지 않습니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not bot_serializer.is_valid():
+            return Response({"message": "AI 봇의 응답이 유효하지 않습니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+        user_serializer.save()
+        bot_serializer.save()
+
+        # 5) 만약 봇의 응답이 특정 문구(게임 관련 질문만 가능)라면, 추가 안내 메시지를 하나 더 제공
+        if bot_message['content']['message'] == "죄송합니다. 게임과 관련 질문에 대해서만 응답을 제공할 수 있습니다. 🕵️":
+            # 추가 안내 문구
+            additional_message_dict = {
+                "message": 'ex) "힐링 게임 추천해줘", "Stardew Valley에 대해 알려줘" 와 같이 게임에 관한 질문을 입력해주세요!'
+            }
+            
+            # 두 번째 봇 메시지(추가 안내 문구) 생성
+            second_bot_message = {
+                "conversation": conversation.id,
+                "content": additional_message_dict,
+                "is_user": False
+            }
+            second_bot_serializer = MessageSerializer(data=second_bot_message)
+
+            if second_bot_serializer.is_valid():
+                second_bot_serializer.save()
+            else:
+                return Response({"message": "추가 메시지 저장 실패"}, status=status.HTTP_400_BAD_REQUEST)
+
+            return Response({
+                'conversation_id': conversation.id,
+                'user_message': user_message['content'], 
+                'bot_messages': bot_message['content'],
+                'bot_guide' : additional_message_dict
+            }, status=status.HTTP_201_CREATED)
         
+        # 6) 그 외 경우에는 기존 로직대로 한 번의 봇 메시지만 응답
         return Response({
             'conversation_id': conversation.id,
             'user_message': user_message['content'],
