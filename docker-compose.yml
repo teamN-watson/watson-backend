@@ -18,8 +18,8 @@ services:
       - .:/app
       - static_volume:/app/staticfiles
       - media_volume:/app/media
-    expose:
-      - 8000
+    ports:
+      - "8000:8000"
     depends_on:
       - db
     env_file:
