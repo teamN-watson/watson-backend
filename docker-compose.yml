@@ -13,6 +13,10 @@ services:
     command: >
       bash -c "python manage.py collectstatic --noinput &&
                python manage.py migrate &&
+               python manage.py crawling &&
+               python manage.py seed_games &&
+               python manage.py seed_interest &&
+               python manage.py steam_data &&
                python manage.py runserver 0.0.0.0:8000"
     volumes:
       - .:/app
