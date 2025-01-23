@@ -77,6 +77,7 @@ CORS_ALLOW_HEADERS = [
 ]
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
+    'django.middleware.common.CommonMiddleware',
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -89,11 +90,34 @@ MIDDLEWARE = [
 CORS_ALLOWED_ORIGINS = [
     "http://ai-watson.com",
     "http://www.ai-watson.com",
+    "http://52.78.197.80:8000",  # AWS IP 추가
     "http://localhost:5173",  # Vite 개발 서버 주소
     "http://127.0.0.1:5173",  # localhost에서 발생하는 요청도 허용"
 ]
 
 CORS_ALLOW_CREDENTIALS = True
+
+# 추가 CORS 설정
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
 
 ROOT_URLCONF = "watson.urls"
 
