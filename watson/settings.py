@@ -89,6 +89,7 @@ MIDDLEWARE = [
 # CORS 설정
 CORS_ALLOWED_ORIGINS = [
     "http://ai-watson.com",
+    "https://ai-watson.com",
     "http://www.ai-watson.com",
     "http://52.78.197.80:8000",  # AWS IP 추가
     "http://localhost:5173",  # Vite 개발 서버 주소
