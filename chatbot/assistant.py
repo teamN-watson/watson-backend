@@ -32,12 +32,12 @@ class AssistantConfig:
     steam_api_key : str
     llm_model: str
     temperature: float = 0.0
-    not_supported_message: str = "죄송합니다. 게임과 관련 질문에 대해서만 응답을 제공할 수 있습니다. 😿"
-    restrict_message: str = "죄송합니다. 관련 게임은 성인 연령만 검색 가능합니다. 😿"
-    not_result_message: str = "죄송합니다. 입력하신 정보와 관련된 게임을 찾을 수 없습니다. 😿"
-    not_find_message: str = "죄송합니다. 원활한 검색을 위해 게임 제목을 영어로 정확하게 입력해주세요. 😿"
-    not_review_message: str = "리뷰가 없습니다. 😿"
-    not_description_message: str = "설명이 없습니다. 😿"
+    not_supported_message: str = "죄송합니다. 게임과 관련 질문에 대해서만 응답을 제공할 수 있습니다. 🕵️"
+    restrict_message: str = "죄송합니다. 관련 게임은 성인 연령만 검색 가능합니다. 🕵️"
+    not_result_message: str = "죄송합니다. 입력하신 정보와 관련된 게임을 찾을 수 없습니다. 🕵️"
+    not_find_message: str = "죄송합니다. 원활한 검색을 위해 게임 제목을 영어로 정확하게 입력해주세요. 🕵️"
+    not_review_message: str = "리뷰가 없습니다. 🕵️"
+    not_description_message: str = "설명이 없습니다. 🕵️"
 
 
 class AgentAction(BaseModel):
@@ -699,7 +699,7 @@ class Assistant():
             return {"message": self.config.not_result_message}
         
         # 게임 설명 요약 정보
-        game_information = {"message": "다음과 같은 게임을 추천드립니다. 😸","game_data": []}
+        game_information = {"message": "다음과 같은 게임을 추천드립니다. 🕵️","game_data": []}
         for id in search_game_id:
             if id:
                 game_info, game_data = self.get_game_info(id)
@@ -798,7 +798,7 @@ class Assistant():
             return {"message": game_id}
 
         # 게임 설명 요약 정보
-        game_information = {"message": "검색하신 게임에 대한 정보입니다. 😸", "game_data": []}
+        game_information = {"message": "검색하신 게임에 대한 정보입니다. 🕵️", "game_data": []}
         if game_id[0]:
             game_info, game_data = self.get_game_info(game_id[0])
             game_review = self.get_game_review(game_id[0])

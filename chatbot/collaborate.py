@@ -866,7 +866,8 @@ class Collaborations_Assistant():
 
         
         # 게임 설명 요약 정보
-        game_information = {"message": "다음과 같은 게임을 추천드립니다. 😸","game_data": []}
+        game_information = {
+            "message": "다음과 같은 게임을 추천드립니다. 🕵️", "game_data": []}
         for id in search_game_id:
             if id:
                 game_info, game_data = self.get_game_info(id)
@@ -966,7 +967,7 @@ class Collaborations_Assistant():
             return {"message": game_id}
 
         # 게임 설명 요약 정보
-        game_information = {"message": "검색하신 게임에 대한 정보입니다. 😸", "game_data": []}
+        game_information = {"message": "검색하신 게임에 대한 정보입니다. 🕵️", "game_data": []}
         if game_id[0]:
             game_info, game_data = self.get_game_info(game_id[0])
             game_review = self.get_game_review(game_id[0])
