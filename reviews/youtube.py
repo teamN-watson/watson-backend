@@ -103,6 +103,7 @@ class SearchYoutube:
 
                     # 비디오 정보 추가
                     video = {
+                        'id': video_id,
                         'title': item['snippet']['title'],
                         'channel': item['snippet']['channelTitle'],
                         'published_at': formatted_date,
