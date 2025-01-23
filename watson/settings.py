@@ -87,9 +87,13 @@ MIDDLEWARE = [
 ]
 # CORS 설정
 CORS_ALLOWED_ORIGINS = [
+    "http://ai-watson.com",
+    "http://www.ai-watson.com",
     "http://localhost:5173",  # Vite 개발 서버 주소
     "http://127.0.0.1:5173",  # localhost에서 발생하는 요청도 허용"
 ]
+
+CORS_ALLOW_CREDENTIALS = True
 
 ROOT_URLCONF = "watson.urls"
 
