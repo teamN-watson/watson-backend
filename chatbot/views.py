@@ -146,7 +146,7 @@ class ChatbotAPIView(APIView):
             return Response({
                 'conversation_id': conversation.id,
                 'user_message': user_message['content'], 
-                'bot_messages': bot_message['content'],
+                'bot_message': bot_message['content'],
                 'bot_guide' : additional_message_dict
             }, status=status.HTTP_201_CREATED)
         
