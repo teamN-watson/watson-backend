@@ -12,6 +12,7 @@ services:
     build: .
     command: >
       bash -c "python manage.py collectstatic --noinput &&
+               python manage.py makemigrations &&
                python manage.py migrate &&
                python manage.py crawling &&
                python manage.py seed_games SteamGamesDataset/steam_games_dataset.csv &&
