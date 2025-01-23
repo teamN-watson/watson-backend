@@ -135,7 +135,6 @@ cython_debug/
 # Let's Encrypt (Traefik)
 letsencrypt/
 
-SteamGamesDataset/*.csv
 SteamGamesDataset/*.json
 
 migrations
