@@ -47,6 +47,7 @@ from django.contrib.auth import login
 import environ
 from accounts import serializers
 import time
+import os
 
 
 @api_view(["POST"])
@@ -552,24 +553,25 @@ def steam_login(request):
     page = request.query_params.get("page")
 
     steam_openid_url = "https://steamcommunity.com/openid/login"
+    front_url = os.getenv("FRONTEND_URL")
     # 공통 파라미터
     params = {
         "openid.ns": "http://specs.openid.net/auth/2.0",
         "openid.identity": "http://specs.openid.net/auth/2.0/identifier_select",
         "openid.claimed_id": "http://specs.openid.net/auth/2.0/identifier_select",
         "openid.mode": "checkid_setup",
-        "openid.realm": "http://localhost:5173/",  # Realm은 API를 호출한 도메인
+        "openid.realm": front_url + "/",  # Realm은 API를 호출한 도메인
     }
 
     # user_id가 있을 경우: 마이페이지로 리디렉션
     if page == "mypage" and user_id:
         params["openid.return_to"] = (
-            f"http://localhost:5173/steam/callback?user_id={user_id}&page={page}"
+            f"{front_url}/steam/callback?user_id={user_id}&page={page}"
         )
     # user_id가 없을 경우: 회원가입 페이지 or 로그인 페이지로 리디렉션
     else:
         params["openid.return_to"] = (
-            f"http://localhost:5173/steam/callback?page={page}"  # 회원가입 페이지로 리디렉션
+            f"{front_url}/steam/callback?page={page}"  # 회원가입 페이지로 리디렉션
         )
 
     param_string = parse.urlencode(params)
