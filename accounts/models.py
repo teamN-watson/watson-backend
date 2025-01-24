@@ -3,6 +3,9 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from accounts.utils import OverwriteStorage, rename_imagefile_to_uid
 from django.conf import settings
 from django.db.models import Q
+import requests
+import json
+import environ
 
 
 class Game(models.Model):
@@ -145,6 +148,51 @@ class Account(AbstractBaseUser):
         return list(Tag.objects.filter(
             steam_tag_id__in=steam_tag_ids
         ).values_list('name_en', flat=True).distinct())
+
+    def get_top_played_games_tags(self):
+        """
+        스팀 연동된 계정의 플레이타임 상위 5개 게임의 태그를 반환
+        """
+        if not self.steamId:
+            return []
+
+        try:
+            env = environ.Env()
+            api_key = env("STEAM_API_KEY")
+            api_url = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/"
+            params = {
+                "key": api_key,
+                "steamid": self.steamId,
+                "include_appinfo": True,
+            }
+            response = requests.get(api_url, params=params)
+            
+            if response.status_code == 200:
+                response_data = response.json()["response"]
+                # 플레이타임으로 정렬하여 상위 5개 게임 추출
+                top_games = sorted(
+                    response_data.get("games", []),
+                    key=lambda x: x["playtime_forever"],
+                    reverse=True
+                )[:5]
+                
+                # 상위 5개 게임의 appID 목록
+                top_game_ids = [game["appid"] for game in top_games]
+                
+                # DB에서 해당 게임들의 태그 조회
+                games_with_tags = Game.objects.filter(appID__in=top_game_ids)
+                
+                # 모든 태그를 하나의 리스트로 합침
+                all_tags = []
+                for game in games_with_tags:
+                    tags = json.loads(game.tags) if isinstance(game.tags, str) else game.tags
+                    all_tags.extend(tags)
+                
+                return all_tags
+                
+        except Exception as e:
+            print(f"스팀 게임 태그 조회 실패: {e}")
+            return []
 
 
 class Notice(models.Model):
