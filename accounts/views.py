@@ -241,15 +241,47 @@ def profile(request):
         return Response({"message": "Invalid request."}, status=400)
 
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def get_recommended_games(request):
     print("\n=== 추천 게임 API 호출 시작 ===")
     user = request.user
+    
+    # 유저가 로그인하지 않은 경우 처리
+    if not user.is_authenticated:
+        return Response({
+            'message': '로그인이 필요한 서비스입니다.',
+            'interest_based_games': [],
+            'playtime_based_games': [],
+            'interest_tags': [],
+            'playtime_tags': []
+        }, status=status.HTTP_401_UNAUTHORIZED)
+    
     user_age = user.age
     print(f"요청 유저: {user.nickname} (ID: {user.id})")
+    
+    # 스팀 연동 확인
+    if not user.steamId:
+        return Response({
+            'message': '스팀 연동이 필요한 서비스입니다.',
+            'interest_based_games': [],
+            'playtime_based_games': [],
+            'interest_tags': [],
+            'playtime_tags': []
+        }, status=status.HTTP_400_BAD_REQUEST)
     
     # 기본 태그와 플레이한 게임 태그 분리
     user_tags = set(tag.lower() for tag in user.get_steam_tag_names_en())
     all_played_game_tags = set(tag.lower() for tag in user.get_top_played_games_tags())
+    
+    # 태그가 없는 경우 처리
+    if not user_tags and not all_played_game_tags:
+        return Response({
+            'message': '추천을 위한 태그 정보가 부족합니다.',
+            'interest_based_games': [],
+            'playtime_based_games': [],
+            'interest_tags': [],
+            'playtime_tags': []
+        }, status=status.HTTP_400_BAD_REQUEST)
     
     # played_game_tags를 user_tags와 같은 크기로 제한
     played_game_tags = set(list(all_played_game_tags)[:len(user_tags)])
