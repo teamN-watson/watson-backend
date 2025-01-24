@@ -414,8 +414,8 @@ class GameDetailAPIView(APIView):
         # 유튜브 영상 검색 함수 호출 (환경변수)
         searcher = SearchYoutube.from_env()
 
-        # 특정 쿼리에 대해 가장 인기도 높은 10분 이하 영상 한 개 검색
-        result = searcher.search_videos(query=game_name+" 게임", max_results=10)
+        # 특정 쿼리에 대해 가장 인기도 높은 10분 이하 영상 다섯 개 검색
+        result = searcher.search_videos(query=game_name+" 게임")
 
         # 리뷰 가져오기
         reviews = Review.objects.filter(app_id=game_id)

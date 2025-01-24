@@ -54,7 +54,7 @@ class SearchYoutube:
         return hours * 3600 + minutes * 60 + seconds
 
 
-    def search_videos(self, query: str, max_results: int = 10):
+    def search_videos(self, query: str, max_results: int = 30):
         try:
             # YouTube API 검색 파라미터 설정
             search_params = {
@@ -63,7 +63,7 @@ class SearchYoutube:
                 'part': 'snippet',
                 'maxResults': max_results,
                 'type': 'video',
-                'order': 'viewCount',
+                'order': 'ViewCount',
                 'regionCode': 'KR',
                 'relevanceLanguage': 'ko'
             }
@@ -85,12 +85,12 @@ class SearchYoutube:
                     video_id = item['id']['videoId']
                     video_stats = self._get_video_stats(video_id)
 
-                    # 동영상 기간 확인 및 5분 이상 30분 이하 필터링
+                    # 동영상 기간 확인 및 10분 이상 2시간 이하 필터링
                     duration_iso = video_stats.get('duration')
                     if duration_iso:
                         length_seconds = self.parse_iso8601_duration(
                             duration_iso)
-                        if length_seconds > 1800 or length_seconds < 300:  # 30분 초과 또는 5분 미만 시 건너뜀
+                        if length_seconds > 3600 or length_seconds < 600:  # 2시간 초과 또는 10분 미만 시 건너뜀
                             continue
                     else:
                         # 기간 정보가 없으면 건너뜀
@@ -117,6 +117,10 @@ class SearchYoutube:
                     print(f"비디오 정보 처리 중 오류 발생: {e}")
                     continue
 
+                # 동영상 5개 쌓이면 끝
+                if len(video_list) == 5:
+                    break
+
             if not video_list:
                 print("조건을 만족하는 영상이 없습니다.")
                 return
@@ -124,8 +128,8 @@ class SearchYoutube:
             # 좋아요 수로 정렬
             video_list.sort(key=lambda x: x['like_count'], reverse=True)
 
-            # 가장 좋아요 수가 많은 동영상 반환 (정렬된 리스트의 첫 번째)
-            return video_list[0] if video_list else None
+            # 가장 좋아요 수가 많은 동영상 반환
+            return video_list if video_list else None
 
         except Exception as e:
             print(f"검색 중 오류 발생: {e}")
