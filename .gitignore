@@ -135,9 +135,11 @@ cython_debug/
 # Let's Encrypt (Traefik)
 letsencrypt/
 
-SteamGamesDataset/*.csv
 SteamGamesDataset/*.json
 
 migrations
 
+# 환경 변수 파일
 .env
+.env.local
+.env.*
