@@ -32,12 +32,12 @@ class AssistantConfig:
     steam_api_key : str
     llm_model: str
     temperature: float = 0.0
-    not_supported_message: str = "죄송합니다. 게임과 관련 질문에 대해서만 응답을 제공할 수 있습니다. 😿"
-    restrict_message: str = "죄송합니다. 관련 게임은 성인 연령만 검색 가능합니다. 😿"
-    not_result_message: str = "죄송합니다. 입력하신 정보와 관련된 게임을 찾을 수 없습니다. 😿"
-    not_find_message: str = "죄송합니다. 원활한 검색을 위해 게임 제목을 영어로 정확하게 입력해주세요. 😿"
-    not_review_message: str = "리뷰가 없습니다. 😿"
-    not_description_message: str = "설명이 없습니다. 😿"
+    not_supported_message: str = "죄송합니다. 게임과 관련 질문에 대해서만 응답을 제공할 수 있습니다. 🕵️"
+    restrict_message: str = "죄송합니다. 관련 게임은 성인 연령만 검색 가능합니다. 🕵️"
+    not_result_message: str = "죄송합니다. 입력하신 정보와 관련된 게임을 찾을 수 없습니다. 🕵️"
+    not_find_message: str = "죄송합니다. 원활한 검색을 위해 게임 제목을 영어로 정확하게 입력해주세요. 🕵️"
+    not_review_message: str = "리뷰가 없습니다. 🕵️"
+    not_description_message: str = "설명이 없습니다. 🕵️"
 
 
 class AgentAction(BaseModel):
@@ -293,9 +293,9 @@ class Assistant():
             주어지는 입력 중 "짧은 게임 설명"은 해당 게임에 대한 핵심적인 설명, "긴 게임 설명"은 해당 게임에 대한 구체적인 설명을 의미합니다.
             또한, 주어지는 입력 중 "긍정적 게임 리뷰"는 해당 게임에 대해 긍정적인 평가를 내린 유저들의 의견, "부정적 게임 리뷰는 해당 게임에 대해 부정적인 평가를 내린 유저들의 의견을 의미합니다. 
             다양한 언어로 되어있는 리뷰이므로 내용을 먼저 이해한 뒤 진행하세요.
-            "게임 짧은 설명"과 "게임 긴 설명"을 기반으로 게임에 대한 설명을 이해하기 쉽고 깔끔하게 최대 3문장으로 요약한 뒤, 한국어로 결과를 출력하세요.(게임 설명에 대한 요약 내용)
-            또한, "게임 긍정적 리뷰"를 기반으로 유저들이 해당 게임에 느끼는 장점들을 이해하기 쉽고 깔끔하게 최대 3문장으로 요약한 뒤, 한국어로 결과를 출력하세요.(긍정적 리뷰에 대한 요약 내용)
-            마지막으로 "게임 부정적 리뷰"를 기반으로 유저들이 해당 게임에 느끼는 단점들을 이해하기 쉽고 깔끔하게 최대 3문장으로 요약한 뒤, 한국어로 결과를 출력하세요.(부정적 리뷰에 대한 요약 내용)
+            "게임 짧은 설명"과 "게임 긴 설명"을 기반으로 게임에 대한 설명을 이해하기 쉽고 깔끔하게 최대 2문장으로 요약한 뒤, 한국어로 결과를 출력하세요.(게임 설명에 대한 요약 내용)
+            또한, "게임 긍정적 리뷰"를 기반으로 유저들이 해당 게임에 느끼는 장점들을 이해하기 쉽고 깔끔하게 최대 2문장으로 요약한 뒤, 한국어로 결과를 출력하세요.(긍정적 리뷰에 대한 요약 내용)
+            마지막으로 "게임 부정적 리뷰"를 기반으로 유저들이 해당 게임에 느끼는 단점들을 이해하기 쉽고 깔끔하게 최대 2문장으로 요약한 뒤, 한국어로 결과를 출력하세요.(부정적 리뷰에 대한 요약 내용)
             최대한 빠른 속도로 실행을 완료하세요.
 
             짧은 게임 설명:
@@ -699,7 +699,7 @@ class Assistant():
             return {"message": self.config.not_result_message}
         
         # 게임 설명 요약 정보
-        game_information = {"message": "다음과 같은 게임을 추천드립니다. 😸","game_data": []}
+        game_information = {"message": "다음과 같은 게임을 추천드립니다. 🕵️","game_data": []}
         for id in search_game_id:
             if id:
                 game_info, game_data = self.get_game_info(id)
@@ -798,7 +798,7 @@ class Assistant():
             return {"message": game_id}
 
         # 게임 설명 요약 정보
-        game_information = {"message": "검색하신 게임에 대한 정보입니다. 😸", "game_data": []}
+        game_information = {"message": "검색하신 게임에 대한 정보입니다. 🕵️", "game_data": []}
         if game_id[0]:
             game_info, game_data = self.get_game_info(game_id[0])
             game_review = self.get_game_review(game_id[0])
