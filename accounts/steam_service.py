@@ -10,10 +10,9 @@ from accounts.models import (
     SteamPlaytime,
 )
 
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+import requests
+from bs4 import BeautifulSoup
+
 
 
 def sync_new_steam_user_data(account):
@@ -40,14 +39,8 @@ def sync_new_steam_user_data(account):
         sp.save()
         return
     
-    # 2) 리뷰 크롤링(최대 3개)
-    options = webdriver.ChromeOptions()
-    options.add_argument("--headless")
-    driver = webdriver.Chrome(options=options)
-    try:
-        review_data = fetch_top3_reviews(driver, steam_id_str)
-    finally:
-        driver.quit()
+    # 2) 리뷰 크롤링(최대 3개) -> BeautifulSoup 이용
+    review_data = fetch_top3_reviews(steam_id_str)
 
 
     # 3) 플레이타임(상위 2개) API 조회
@@ -93,38 +86,50 @@ def check_profile_public(api_key, steam_id_str):
     return (vis_state == 3)
 
 
-def fetch_top3_reviews(driver, steam_id_str):
+def fetch_top3_reviews(steam_id_str):
     """
-    스팀 커뮤니티 프로필에서 상위 3개 'Recommended' 리뷰를 크롤링.
-    커스텀 URL 제외 (64비트 프로필 only).
+    Selenium 없이 상위 3개의 'Recommended' 리뷰 정보를 가져온다.
     """
     url = f"https://steamcommunity.com/profiles/{steam_id_str}/recommended"
-    try:
-        driver.get(url)
-        WebDriverWait(driver, 10).until(
-            EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".review_box"))
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/87.0.4280.66 Safari/537.36"
         )
-        boxes = driver.find_elements(By.CSS_SELECTOR, ".review_box")
-    except:
+    }
+
+    try:
+        response = requests.get(url, headers=headers, timeout=10)
+    except Exception as e:
+        print(f"Error fetching reviews page: {e}")
         return []
 
+    if response.status_code != 200:
+        # 프로필이 Private 상태거나 접근 실패 시 빈 리스트 반환
+        return []
+
+    soup = BeautifulSoup(response.text, "html.parser")
+    review_boxes = soup.select(".review_box")
+    
     recommended = []
-    for box in boxes:
+    for box in review_boxes:
         try:
-            title_elem = box.find_element(By.CSS_SELECTOR, ".vote_header .title > a")
-            if "Recommended" not in title_elem.text:
+            title_elem = box.select_one(".vote_header .title > a")
+            if not title_elem or "Recommended" not in title_elem.text:
                 continue
 
-            href = title_elem.get_attribute("href")
+            href = title_elem.get("href", "")
             if "/recommended/" not in href:
                 continue
+
             app_id = href.split("/recommended/")[1].split("/")[0]
             recommended.append({"app_id": app_id})
 
             if len(recommended) >= 3:
                 break
         except Exception as e:
-            print(f"Error processing review box: {e}")
+            print(f"리뷰 박스 처리 중 오류 발생: {e}")
             continue
 
     return recommended
