@@ -485,7 +485,7 @@ class Assistant():
         container = soup.find('div', id='search_resultsRows')
 
         # 'search_resultsRows' 안에 있는 직계 <a> 태그들을 최대 10개까지 가져오기
-        links = container.find_all('a', recursive=False, limit=10) if container else []
+        links = container.find_all('a', recursive=False, limit=50) if container else []
 
         # 결과 아무것도 없으면 바로 안내 문구 반환
         if not links:
@@ -519,17 +519,17 @@ class Assistant():
                     app_ids.append(appid)
                     count += 1
                 
-                # 수집된 결과 3개 채워졌으면 반복문 탈출
-                if count == 3:
-                    break
+            # 수집된 결과 3개 채워졌으면 반복문 탈출
+            if count == 3:
+                break
 
         if count < 3:
             for link in sub_link: 
                 tagids = link.get('data-ds-tagids')
                 appid = link.get('data-ds-appid')
 
-                # 사용자가 플레이 했던 게임은 제외
-                if appid not in user_game:
+                # 사용자가 플레이 했던 게임, 이미 추출된 게임은 제외
+                if appid not in user_game and appid not in app_ids:
                     # 미성년자일 때 검색 결과 필터링
                     if request.user.age < 20:   
                         if not any(tag in json.loads(tagids) for tag in self.restrict_id):
@@ -539,9 +539,9 @@ class Assistant():
                         app_ids.append(appid)
                         count += 1
                     
-                    # 수집된 결과 3개 채워졌으면 반복문 탈출
-                    if count == 3:
-                        break
+                # 수집된 결과 3개 채워졌으면 반복문 탈출
+                if count == 3:
+                    break
         
         # app_id가 아무것도 모이지 않았을 때 안내 문구 반환
         if not app_ids:
@@ -700,7 +700,7 @@ class Assistant():
         
         # 게임 설명 요약 정보
         game_information = {"message": "다음과 같은 게임을 추천드립니다. 🕵️","game_data": []}
-        for id in search_game_id:
+        for id in search_game_id[0:3]:
             if id:
                 game_info, game_data = self.get_game_info(id)
                 game_review = self.get_game_review(id)
