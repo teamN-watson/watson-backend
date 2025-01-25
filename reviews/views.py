@@ -69,13 +69,35 @@ class ReviewAPIView(APIView):
             reviews = reviews.order_by("-view_count", "-created_at")
         else:  # 최신순
             reviews = reviews.order_by("-created_at")
+        
+        
+        page = request.query_params.get("page", 1)  # 현재 페이지 (기본값 1)
+        paginator = Paginator(reviews, 10)  # 페이지당 10개씩 표시
 
-        serializer = ReviewSerializer(
-            reviews,
-            many=True,
-            context={"request": request, "blocked_users": list(blocked_users)},
+        # 현재 페이지 데이터 가져오기
+        try:
+            page_obj = paginator.page(page)
+        except Exception as e:
+            Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not reviews.exists():
+            return Response(
+                {"detail": "검색 결과가 없습니다."}, status=status.HTTP_404_NOT_FOUND
+            )
+            
+        page_obj = paginator.page(page)
+        serializer = ReviewSerializer(page_obj, many=True)
+        return Response(
+            {
+                "reviews": serializer.data,
+                "has_next": page_obj.has_next(),  # 다음 페이지 존재 여부
+                "current_page": page_obj.number,
+            },
+            status=status.HTTP_200_OK,
         )
-        return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request):
         """새 리뷰 생성"""
