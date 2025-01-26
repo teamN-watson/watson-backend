@@ -275,7 +275,7 @@ class AutoAssistant():
         # 결과 아무것도 없으면 바로 안내 문구 반환
         if not links:
             return self.config.not_result_message
-
+ 
         # 각 <a> 태그에서 data-ds-appid 속성 추출
         app_ids = []
         count = 0
