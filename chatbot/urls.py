@@ -11,5 +11,5 @@ urlpatterns = [
     # 대화 메시지 삭제
     path("<int:messageid>/", views.DeleteChatbotRecordAPIView.as_view(), name="delete_record"),
     # 자동 사용자 맞춤 게임 추천
-    path("auto/", views.ChatbotAPIView.as_view(), name="auto_chatbot"),
+    path("auto/", views.AutoChatbotAPIView.as_view(), name="auto_chatbot"),
 ]

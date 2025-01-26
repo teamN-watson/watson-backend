@@ -191,7 +191,7 @@ class DeleteChatbotRecordAPIView(APIView):
         return Response({"message": "메시지가 정상적으로 삭제되었습니다."}, status=200)
     
 
-class ChatbotAPIView(APIView):
+class AutoChatbotAPIView(APIView):
     """
     챗봇 관련 클래스 (입력, 초기화)
     """

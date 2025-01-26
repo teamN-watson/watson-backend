@@ -465,7 +465,6 @@ class AutoAssistant():
 
         # 사용자의 취향을 분석한 태그 추출
         user_tag = self.final_tag(request)
-        print(user_tag)
 
         if not user_tag:
             return {"message": self.config.not_enough_message}
