@@ -826,7 +826,8 @@ class Collaborations_Assistant():
 
         # 가장 비슷한 유저가 있을 경우
         if similar_user_game:
-            for game_id in similar_user_game:
+            random_similar_user_game = random.sample(similar_user_game, len(similar_user_game))
+            for game_id in random_similar_user_game:
                 game_tag_id = self.get_game_tag(game_id)
                 # 가장 비슷한 유저의 게임 중 본인이 원하는 종류의 게임 추출
                 # 사용자 입력의 태그를 모두 충족하는 게임 추출
@@ -846,7 +847,8 @@ class Collaborations_Assistant():
 
             # 사용자 입력의 태그를 모두 충족하는 게임이 없을 시 하나라도 충족하는 게임 추출
             if num==0:
-                for game_id in similar_user_game:
+                for game_id in random_similar_user_game:
+                    game_tag_id = self.get_game_tag(game_id)
                     if any(tag in game_tag_id[0:7] for tag in input_tag):
                         # 미성년자의 경우 게임 필터링
                         if request.user.age < 20:
