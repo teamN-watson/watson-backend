@@ -143,3 +143,5 @@ migrations
 .env
 .env.local
 .env.*
+
+cache_location/
