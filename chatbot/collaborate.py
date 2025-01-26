@@ -16,6 +16,7 @@ from collections import defaultdict
 import json
 from django.test import RequestFactory
 import itertools
+import random
 
 
 
@@ -500,7 +501,7 @@ class Collaborations_Assistant():
         # id가 'search_resultsRows'인 div 찾기
         container = soup.find('div', id='search_resultsRows')
 
-        # 'search_resultsRows' 안에 있는 직계 <a> 태그들을 최대 10개까지 가져오기
+        # 'search_resultsRows' 안에 있는 직계 <a> 태그들을 최대 50개까지 가져오기
         links = container.find_all('a', recursive=False, limit=50) if container else []
 
         # 결과 아무것도 없으면 바로 안내 문구 반환
@@ -511,7 +512,8 @@ class Collaborations_Assistant():
         app_ids = []
         sub_link = []
         count = 0
-        for link in links: 
+        random_links = random.sample(links, len(links))
+        for link in random_links: 
             tagids = link.get('data-ds-tagids')
             appid = link.get('data-ds-appid')
 
@@ -1028,9 +1030,9 @@ class Collaborations_Assistant():
             # id가 'search_resultsRows'인 div 찾기
             container = soup.find('div', id='search_resultsRows')
 
-            # 'search_resultsRows' 안에 있는 직계 <a> 태그 최대 10개 가져오기
+            # 'search_resultsRows' 안에 있는 직계 <a> 태그 최대 50개 가져오기
             links = container.find_all(
-                'a', recursive=False, limit=10) if container else []
+                'a', recursive=False, limit=50) if container else []
 
             # 결과 아무것도 없으면 바로 안내 문구 반환
             if not links:
@@ -1040,7 +1042,8 @@ class Collaborations_Assistant():
             app_ids = []
             app_tags = []
             count = 0
-            for link in links:
+            random_links = random.sample(links, len(links))
+            for link in random_links:
                 appid = link.get('data-ds-appid')
 
                 # 번들과 같이 appid가 없는 대상일 경우 스킵
@@ -1078,8 +1081,6 @@ class Collaborations_Assistant():
             game_id, game_tags = search_game_tag(query)
         except Exception as e:
             print(e)
-        print(game_id)
-        print(game_tags)
 
         # 추출된 결과 아무것도 없으면 바로 안내 문구 추출
         if game_id == self.config.not_find_message or game_id == self.config.restrict_message:
@@ -1094,7 +1095,6 @@ class Collaborations_Assistant():
         # 게임 검색 함수
         search_game_id = self.search_filter(
                 request, game_tags, game_tags, 3, user_game)
-        print(search_game_id)
         
         # 취향이 비슷한 유저와 검색의 결과로 아무것도 추출되지 않았을 때
         if not search_game_id:

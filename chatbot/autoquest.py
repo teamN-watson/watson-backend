@@ -15,6 +15,7 @@ from fake_useragent import UserAgent
 from collections import defaultdict
 import json
 from collections import Counter
+import random
 
 
 @dataclass
@@ -267,7 +268,7 @@ class AutoAssistant():
         # id가 'search_resultsRows'인 div 찾기
         container = soup.find('div', id='search_resultsRows')
 
-        # 'search_resultsRows' 안에 있는 직계 <a> 태그들을 최대 10개까지 가져오기
+        # 'search_resultsRows' 안에 있는 직계 <a> 태그들을 최대 50개까지 가져오기
         links = container.find_all(
             'a', recursive=False, limit=50) if container else []
 
@@ -278,7 +279,8 @@ class AutoAssistant():
         # 각 <a> 태그에서 data-ds-appid 속성 추출
         app_ids = []
         count = 0
-        for link in links:
+        random_links = random.sample(links, len(links))
+        for link in random_links:
             tagids = link.get('data-ds-tagids')
             appid = link.get('data-ds-appid')
 
