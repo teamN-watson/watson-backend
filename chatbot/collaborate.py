@@ -815,7 +815,6 @@ class Collaborations_Assistant():
         
         # 사용자 입력으로부터 관련 태그 추출
         input_tag, search_tag = self.search_tag(request, query)
-        print(search_tag)
         
         # 입력 내용 인식이 어렵거나 유저가 미성년자라 입력 내용이 부적절할 때 바로 안내 문구로 결과 출력
         if search_tag == self.config.not_result_message or search_tag == self.config.restrict_message:
