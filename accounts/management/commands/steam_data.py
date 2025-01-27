@@ -3,6 +3,7 @@ import requests
 from django.core.management.base import BaseCommand
 from django.db import transaction
 import re
+from bs4 import BeautifulSoup
 from accounts.models import (
     Account,
     SteamProfile,
@@ -10,10 +11,6 @@ from accounts.models import (
     SteamPlaytime,
 )
 
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 
 class Command(BaseCommand):
     help = "Steam 프로필/리뷰/플레이타임 정보를 가져와 DB에 반영"
@@ -23,42 +20,38 @@ class Command(BaseCommand):
         env = environ.Env()
         api_key = env("STEAM_API_KEY")  # .env에 STEAM_API_KEY=... 설정
 
-        # 2) Selenium WebDriver 준비 (#Headless 예시)
-        options = webdriver.ChromeOptions()
-        options.add_argument("--headless")
-        driver = webdriver.Chrome(options=options)
-
-        # 3) steamId가 비어있지 않은 Account를 모두 가져온다
+        # 2) steamId가 비어있지 않은 Account를 모두 가져온다
         accounts = Account.objects.exclude(steamId="")
         
-        # 여기서 steamId 형식이 64 비트
+        # 3) 각 Account에 대해 프로필/리뷰/플레이타임 업데이트
         for account in accounts:
             steam_id_str = account.steamId.strip()
 
-            # 4) (A) 전체 프로필 공개 여부 API로 확인
+            # 4) 전체 프로필 공개 여부 API로 확인
             visibility_public = self.check_profile_public(api_key, steam_id_str)
+
             # 기본값 False로 시작
             is_review = False
             is_playtime = False
 
             if visibility_public:
-                # (B) 게임 목록 공개 여부 판단 이제 필요 없을듯?
+                # (A) 게임 목록 공개 여부 판단 (참고용)
                 owned_games_public = self.check_owned_games_public(api_key, steam_id_str)
                 
 
-                # (C) 리뷰 크롤링 (최대 3개)
-                review_data = self.fetch_top3_reviews(driver, steam_id_str)
+                # (B) 리뷰 크롤링 (최대 3개) - BeautifulSoup 이용
+                review_data = self.fetch_top3_reviews(steam_id_str)
                 if review_data:
                     is_review = True  # 한 개라도 있으면 True
 
 
-                # (D) API로 플레이타임 가져오기
+                # (C) 플레이타임 API로 가져오기 (상위 2개)
                 playtime_data = self.fetch_top2_playtime_api(api_key, steam_id_str)
                 if playtime_data:
                     is_playtime = True
                 
 
-                # (E) DB 저장
+                # (D) DB 저장
                 with transaction.atomic():
                     # SteamProfile
                     sp, _ = SteamProfile.objects.get_or_create(account=account)
@@ -95,7 +88,6 @@ class Command(BaseCommand):
                     SteamReview.objects.filter(account=account).delete()
                     SteamPlaytime.objects.filter(account=account).delete()
 
-        driver.quit()
         self.stdout.write(self.style.SUCCESS("Steam 데이터 처리 완료."))
 
     # -------------------------------------------------------
@@ -154,9 +146,9 @@ class Command(BaseCommand):
         return len(games) > 0
 
     # -------------------------------------------------------
-    # (C) 리뷰 페이지 크롤링 (상위 3개 'Recommended')
+    # (C) 리뷰 페이지 크롤링 (상위 3개 'Recommended') - BeautifulSoup 사용
     # -------------------------------------------------------
-    def fetch_top3_reviews(self, driver, steam_id_str):
+    def fetch_top3_reviews(self, steam_id_str):
         base_url = "https://steamcommunity.com/"
         # 프로필 주소 결정
         if steam_id_str.isdigit():
@@ -164,41 +156,38 @@ class Command(BaseCommand):
         else:
             url = f"{base_url}id/{steam_id_str}/recommended"
 
-        try:
-            driver.get(url)
-            # 대기
-            WebDriverWait(driver, 10).until(
-                EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".review_box"))
+        headers = {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/87.0.4280.66 Safari/537.36"
             )
-            boxes = driver.find_elements(By.CSS_SELECTOR, ".review_box")
+        }
+
+        try:
+            response = requests.get(url, headers=headers, timeout=10)
+            if response.status_code != 200:
+                # 프로필이 Private 상태거나 접근 실패 시 빈 리스트
+                return []
+            soup = BeautifulSoup(response.text, "html.parser")
         except:
-            # 없거나 비공개 등
+            # 요청 실패 시 빈 리스트
             return []
 
-        # 추천 리뷰
+        boxes = soup.select(".review_box")
         recommended = []
         for box in boxes:
             try:
-                # (1) '추천' 여부 확인
-                title_elem = box.find_element(By.CSS_SELECTOR, ".vote_header .title > a")
-                if "Recommended" not in title_elem.text:
-                    continue
-
-                # (2) 게임 ID 추출
-                href = title_elem.get_attribute("href")
-                if "/recommended/" not in href:
-                    continue
-                app_id = href.split("/recommended/")[1].split("/")[0]
-
-                # 추천 리뷰 추가
-                recommended.append({"app_id": app_id})
-
-                # 최대 3개까지만
-                if len(recommended) >= 3:
-                    break
-
-            except Exception as e:
-                print(f"Error processing review box: {e}")
+                title_elem = box.select_one(".vote_header .title > a")
+                if title_elem and "Recommended" in title_elem.text:
+                    href = title_elem.get("href", "")
+                    if "/recommended/" in href:
+                        app_id = href.split("/recommended/")[1].split("/")[0]
+                        recommended.append({"app_id": app_id})
+                        if len(recommended) >= 3:
+                            break
+            except:
+                # 파싱 실패 시 다음 리뷰로 넘어감
                 continue
 
         return recommended
