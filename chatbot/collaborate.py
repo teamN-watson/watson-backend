@@ -16,6 +16,7 @@ from collections import defaultdict
 import json
 from django.test import RequestFactory
 import itertools
+import random
 
 
 
@@ -47,7 +48,7 @@ class AgentAction(BaseModel):
     에이전트의 행동을 정의하는 Pydantic 모델
     """
     # Literal을 사용하여 action 필드가 가질 수 있는 값을 제한합니다
-    action: Literal["search_game","search_game_info", "not_supported"] = Field(
+    action: Literal["search_game","search_game_info", "not_supported", "search_like_game"] = Field(
         description="에이전트가 수행할 행동의 타입을 지정합니다",
     )
 
@@ -160,6 +161,10 @@ class Collaborations_Assistant():
             - 게임과 관련되었어도 핵심 주제어(게임 이름)을 파악하지 못할 경우
             - "추천"해달라는 요청이 있어도 앞에 특정 게임 이름을 언급하거나 게임과 관련없는 것을 추천해달라고 하는 경우
 
+            4. `search_like_game`
+            - 사용자가 "특정 게임과 비슷"한 게임 추천을 요청하는 경우
+            - 예: "Palworld 같은 게임 추천해줘", "gta와 비슷한 게임 추천해줘"
+
             # Action이 'not_supported'인 경우:
             - action_output은 빈 문자열로 설정
 
@@ -175,6 +180,15 @@ class Collaborations_Assistant():
                 1. action을 "search_game"로 설정
                 2. 검색어 최적화:
                     - 사용자가 입력한 내용에서 변형 없이 그대로 유지
+
+            # Action이 'search_like_game'인 경우:
+                1. action을 "search_like_game"로 설정
+                2. 검색어 최적화:
+                    - 핵심 주제어(특정 게임이름) 추출
+                    - 불필요한 단어 제거 (같은 게임, 비슷한 게임, 찾아줘, 알려줘 등)
+                    - 맥락 상 특정한 게임 이름은 그대로 유지
+                    - 핵심 주제어(특정 게임이름)가 여러가지일 시 가장 먼저 인식되는 주제어(게임 이름)로 추출
+
 
             분석할 질의: {input}
 
@@ -487,7 +501,7 @@ class Collaborations_Assistant():
         # id가 'search_resultsRows'인 div 찾기
         container = soup.find('div', id='search_resultsRows')
 
-        # 'search_resultsRows' 안에 있는 직계 <a> 태그들을 최대 10개까지 가져오기
+        # 'search_resultsRows' 안에 있는 직계 <a> 태그들을 최대 50개까지 가져오기
         links = container.find_all('a', recursive=False, limit=50) if container else []
 
         # 결과 아무것도 없으면 바로 안내 문구 반환
@@ -498,7 +512,8 @@ class Collaborations_Assistant():
         app_ids = []
         sub_link = []
         count = 0
-        for link in links: 
+        random_links = random.sample(links, len(links))
+        for link in random_links: 
             tagids = link.get('data-ds-tagids')
             appid = link.get('data-ds-appid')
 
@@ -811,14 +826,15 @@ class Collaborations_Assistant():
 
         # 가장 비슷한 유저가 있을 경우
         if similar_user_game:
-            for game_id in similar_user_game:
+            random_similar_user_game = random.sample(similar_user_game, len(similar_user_game))
+            for game_id in random_similar_user_game:
                 game_tag_id = self.get_game_tag(game_id)
                 # 가장 비슷한 유저의 게임 중 본인이 원하는 종류의 게임 추출
                 # 사용자 입력의 태그를 모두 충족하는 게임 추출
                 if all(tag in game_tag_id[0:7] for tag in input_tag):
                     # 미성년자의 경우 게임 필터링
                     if request.user.age < 20:
-                        if not any(tag in game_tag_id[0:7] for tag in self.restrict_id):
+                        if not any(tag in game_tag_id for tag in self.restrict_id):
                             search_game_id.append(game_id)
                             num += 1
                     else:
@@ -828,23 +844,6 @@ class Collaborations_Assistant():
                 # 비슷한 유저의 게임 중 원하는 게임이 다 쌓였을 경우 탈출
                 if num == 3:
                     break
-
-            # 사용자 입력의 태그를 모두 충족하는 게임이 없을 시 하나라도 충족하는 게임 추출
-            if num==0:
-                for game_id in similar_user_game:
-                    if any(tag in game_tag_id[0:7] for tag in input_tag):
-                        # 미성년자의 경우 게임 필터링
-                        if request.user.age < 20:
-                            if not any(tag in game_tag_id[0:7] for tag in self.restrict_id):
-                                search_game_id.append(game_id)
-                                num += 1
-                        else:
-                            search_game_id.append(game_id)
-                            num += 1
-                
-                    # 비슷한 유저의 게임 중 원하는 게임이 다 쌓였을 경우 탈출
-                    if num == 3:
-                        break
 
         # 사용자 게임에 이미 검색된 게임도 포함
         user_game.extend(search_game_id)
@@ -986,6 +985,128 @@ class Collaborations_Assistant():
                 game_information["game_data"].append(game_data)
 
         return game_information
+    
+
+    def search_like_game(self, request, query):
+        """
+        특정 게임과 비슷한 게임 추천 원할 시
+        """
+        # 모델에서 제대로 키워드를 추출하지 못했을 경우 안내 문장 반환
+        if not query:
+            return {"message": self.config.not_result_message}
+        
+        def search_game_tag(query):
+            """
+            추출된 게임 이름으로 가장 먼저 검색되는 게임 아이디 추출
+            """
+            url = f"https://store.steampowered.com/search/?ignore_preferences=1&term={query}&ndl=1"
+
+            # User-Agent 설정
+            ua = UserAgent()
+            headers = {
+                "User-Agent": ua.random
+            }
+
+            # HTTP GET 요청 및 파싱
+            response = requests.get(url, headers=headers)
+            soup = BeautifulSoup(response.text, 'html.parser')
+
+            # id가 'search_resultsRows'인 div 찾기
+            container = soup.find('div', id='search_resultsRows')
+
+            # 'search_resultsRows' 안에 있는 직계 <a> 태그 최대 50개 가져오기
+            links = container.find_all(
+                'a', recursive=False, limit=50) if container else []
+
+            # 결과 아무것도 없으면 바로 안내 문구 반환
+            if not links:
+                return self.config.not_find_message, []
+
+            # 각 <a> 태그에서 data-ds-appid 속성 추출
+            app_ids = []
+            app_tags = []
+            count = 0
+            random_links = random.sample(links, len(links))
+            for link in random_links:
+                appid = link.get('data-ds-appid')
+
+                # 번들과 같이 appid가 없는 대상일 경우 스킵
+                if not appid:
+                    continue
+
+                # 해당 게임의 태그 아이디 추출
+                tagids = link.get('data-ds-tagids')
+
+                # 인기 태그 정보 없을 때 스킵
+                if not tagids:
+                    continue
+
+                # 미성년자일 때 검색 결과 필터링
+                if request.user.age < 20:
+                    if not any(tag in json.loads(tagids) for tag in self.restrict_id):
+                        app_ids.append(appid)
+                        count += 1
+                    else:
+                        return self.config.restrict_message, []
+                else:
+                    app_ids.append(appid)
+                    app_tags.extend(json.loads(tagids)[0:3])
+                    count += 1
+
+                # 수집된 결과 1개 채워졌으면 반복문 탈출
+                if count == 1:
+                    break
+
+            # app_id가 아무것도 모이지 않았을 때 안내 문구 반환
+            if not app_ids:
+                return self.config.not_find_message, []
+            return app_ids, app_tags
+        try:
+            game_id, game_tags = search_game_tag(query)
+        except Exception as e:
+            print(e)
+
+        # 추출된 결과 아무것도 없으면 바로 안내 문구 추출
+        if game_id == self.config.not_find_message or game_id == self.config.restrict_message:
+            return {"message": game_id}
+        
+        # 사용자 보유 게임
+        user_game = self.find_game_id(request.user.id)
+
+        # 사용자 보유 게임에 추출한 특정 게임 추가
+        user_game = list(set(user_game + game_id))
+
+        # 게임 검색 함수
+        search_game_id = self.search_filter(
+                request, game_tags, game_tags, 3, user_game)
+        
+        # 취향이 비슷한 유저와 검색의 결과로 아무것도 추출되지 않았을 때
+        if not search_game_id:
+            return {"message": self.config.not_result_message}
+
+        # 게임 설명 요약 정보
+        game_information = {
+            "message": "다음과 같은 게임을 추천드립니다. 🕵️", "game_data": []}
+        for id in search_game_id[0:3]:
+            if id:
+                game_info, game_data = self.get_game_info(id)
+                game_review = self.get_game_review(id)
+                # LLM 호출
+                game_summary = self.summarychain.invoke({
+                    "short_inform": game_info['short_inform'],
+                    "long_inform": game_info['long_inform'],
+                    "good_review": game_review['good_review'],
+                    "bad_review": game_review['bad_review']
+
+                })
+
+                if game_summary:
+                    game_data['description'] = game_summary['description']
+                    game_data['good_review'] = game_summary['good_review']
+                    game_data['bad_review'] = game_summary['bad_review']
+                    game_information["game_data"].append(game_data)
+
+        return game_information
 
 
     def process_query(self, request, query: str):
@@ -1010,6 +1131,9 @@ class Collaborations_Assistant():
             
             elif action == "search_game_info":
                 return self.search_game_info(request, action_output)
+
+            elif action == "search_like_game":
+                return self.search_like_game(request, action_output)
 
         except Exception as e:
             return {"message":self.config.not_result_message}
