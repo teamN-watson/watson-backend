@@ -21,7 +21,7 @@ from django.http import JsonResponse
 from urllib.parse import urlencode
 from reviews.youtube import SearchYoutube
 import requests
-
+from django.core.cache import cache
 
 class ReviewAPIView(APIView):
     """
@@ -433,6 +433,18 @@ class ReviewSearchAPIView(APIView):
             status=status.HTTP_200_OK,
         )
 
+def get_steam_data(game_id):
+    cache_key = f"steam_data_{game_id}"
+    steam_data = cache.get(cache_key)
+    if not steam_data:
+        params = {'appids': game_id, 'l': 'korean'}
+        url = f'https://store.steampowered.com/api/appdetails?{urlencode(params)}'
+        response = requests.get(url)
+        steam_data = response.json()
+        cache.set(cache_key, steam_data, timeout=3600)  # 1시간 동안 캐싱
+    else:
+        print("cache")
+    return steam_data
 
 class GameDetailAPIView(APIView):
     """
@@ -453,14 +465,11 @@ class GameDetailAPIView(APIView):
         # Game 객체 가져오기
         game = get_object_or_404(Game, appID=game_id)
 
-        # Game 이름만 추출
-        game_name = game.name
-
         # 유튜브 영상 검색 함수 호출 (환경변수)
         searcher = SearchYoutube.from_env()
 
         # 특정 쿼리에 대해 가장 인기도 높은 10분 이하 영상 다섯 개 검색
-        result = searcher.search_videos(query=game_name+" 게임")
+        video_data = searcher.search_videos(query=game.name)
 
         # 리뷰 가져오기
         reviews = Review.objects.filter(app_id=game_id)
@@ -484,17 +493,8 @@ class GameDetailAPIView(APIView):
             except Review.DoesNotExist:
                 clicked_review = None
         
-        # steam api - changoo
-        steam_data = None
-        try:
-            params = {'appids': game_id, 'l': 'korean'}
-            url = f'https://store.steampowered.com/api/appdetails?{urlencode(params)}'
-            response = requests.get(url)
-            steam_data = response.json()  # 데이터를 steam_data에 저장
-            steam_data = steam_data[game_id]["data"]
-            # steam_data = steam_data[game_id].data
-        except requests.exceptions.RequestException as e:
-            steam_data = {"error": str(e)}  # 에러가 발생한 경우, 에러 메시지를 steam_data에 저장
+        steam_data = get_steam_data(game_id)
+        steam_data = steam_data[game_id]["data"]
 
         # 직렬화
         game_serializer = GameSerializer(game)
@@ -507,7 +507,7 @@ class GameDetailAPIView(APIView):
         return Response(
             {
                 "game": game_serializer.data,
-                "video": result,
+                "video": video_data,
                 "average_score": average_score,
                 "total_reviews": total_reviews,
                 "my_review": my_review_serializer.data if my_review else None,

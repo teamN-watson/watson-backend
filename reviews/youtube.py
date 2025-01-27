@@ -4,7 +4,9 @@ from dataclasses import dataclass
 from dotenv import load_dotenv
 import os
 import re
-
+from django.core.cache import cache
+import hashlib
+import json
 
 @dataclass
 class YoutubeConfig:
@@ -55,11 +57,18 @@ class SearchYoutube:
 
 
     def search_videos(self, query: str, max_results: int = 30):
+        # 캐시 키 생성
+        cache_key = f"youtube_videos_{query}"
+        cached_result = cache.get(cache_key)
+        
+        if cached_result:
+            print("cache")
+            return cached_result  # 캐시된 데이터 반환
         try:
             # YouTube API 검색 파라미터 설정
             search_params = {
                 'key': self.config.youtube_api_key,
-                'q': query,
+                'q': query+" 게임",
                 'part': 'snippet',
                 'maxResults': max_results,
                 'type': 'video',
@@ -75,7 +84,7 @@ class SearchYoutube:
 
             if 'items' not in search_data or not search_data['items']:
                 print("검색 결과가 없습니다.")
-                return
+                return []
 
             video_list = []
 
@@ -88,8 +97,7 @@ class SearchYoutube:
                     # 동영상 기간 확인 및 10분 이상 2시간 이하 필터링
                     duration_iso = video_stats.get('duration')
                     if duration_iso:
-                        length_seconds = self.parse_iso8601_duration(
-                            duration_iso)
+                        length_seconds = self.parse_iso8601_duration(duration_iso)
                         if length_seconds > 3600 or length_seconds < 600:  # 2시간 초과 또는 10분 미만 시 건너뜀
                             continue
                     else:
@@ -97,8 +105,7 @@ class SearchYoutube:
                         continue
 
                     # 날짜 포맷 변경
-                    published_at = datetime.strptime(
-                        item['snippet']['publishedAt'], "%Y-%m-%dT%H:%M:%SZ")
+                    published_at = datetime.strptime(item['snippet']['publishedAt'], "%Y-%m-%dT%H:%M:%SZ")
                     formatted_date = published_at.strftime("%Y년 %m월 %d일")
 
                     # 비디오 정보 추가
@@ -123,16 +130,19 @@ class SearchYoutube:
 
             if not video_list:
                 print("조건을 만족하는 영상이 없습니다.")
-                return
+                return []
 
             # 좋아요 수로 정렬
             video_list.sort(key=lambda x: x['like_count'], reverse=True)
 
-            # 가장 좋아요 수가 많은 동영상 반환
-            return video_list if video_list else None
+            # 캐시 저장
+            cache.set(cache_key, video_list, timeout=3600)  # 1시간 캐시
+
+            return video_list
 
         except Exception as e:
             print(f"검색 중 오류 발생: {e}")
+            return []
 
     def _get_video_stats(self, video_id: str) -> dict:
         try:

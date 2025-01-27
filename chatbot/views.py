@@ -6,6 +6,7 @@ from chatbot.models import Conversation, Message
 from chatbot.serializers import MessageSerializer
 from chatbot.assistant import Assistant
 from chatbot.collaborate import Collaborations_Assistant
+from chatbot.autoquest import AutoAssistant
 from django.shortcuts import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from accounts.models import Account
@@ -189,3 +190,60 @@ class DeleteChatbotRecordAPIView(APIView):
         # 응답 반환 (필요 시)
         return Response({"message": "메시지가 정상적으로 삭제되었습니다."}, status=200)
     
+
+class AutoChatbotAPIView(APIView):
+    """
+    챗봇 관련 클래스 (입력, 초기화)
+    """
+    # 로그인된 사용자만 접근 가능하도록 설정
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        """
+        챗봇 응답 요청 및 대화 내역 저장
+        """
+
+        # 1) Conversation 객체 가져오기
+        conversation = Conversation.objects.filter(
+            account_id=request.user.id).first()
+
+        if not conversation:
+            return Response({"message": "생성된 채팅방이 없습니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 2) 사용자 메시지 저장
+        user_message = {
+            "conversation": conversation.id,
+            "content": "내 취향에 맞는 게임 추천해줘",
+            "is_user": True
+        }
+
+        user_serializer = MessageSerializer(data=user_message)
+
+        # 3) 챗봇 응답 메시지 저장
+        # 3-1) 챗봇 모델 생성
+        assistant = AutoAssistant.from_env()
+
+        bot_message = {
+            "conversation": conversation.id,
+            "content": assistant.process_query(request),
+            "is_user": False
+        }
+
+        bot_serializer = MessageSerializer(data=bot_message)
+
+        # 4) 유효성 검사 및 저장
+        if not user_serializer.is_valid():
+            return Response({"message": "사용자의 입력이 유효하지 않습니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not bot_serializer.is_valid():
+            return Response({"message": "AI 봇의 응답이 유효하지 않습니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+        user_serializer.save()
+        bot_serializer.save()
+
+        # 5) 봇 메시지 응답
+        return Response({
+            'conversation_id': conversation.id,
+            'user_message': user_message['content'],
+            'bot_message': bot_message['content']
+        }, status=status.HTTP_201_CREATED)
