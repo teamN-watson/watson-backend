@@ -815,6 +815,7 @@ class Collaborations_Assistant():
         
         # 사용자 입력으로부터 관련 태그 추출
         input_tag, search_tag = self.search_tag(request, query)
+        print(search_tag)
         
         # 입력 내용 인식이 어렵거나 유저가 미성년자라 입력 내용이 부적절할 때 바로 안내 문구로 결과 출력
         if search_tag == self.config.not_result_message or search_tag == self.config.restrict_message:
@@ -834,7 +835,7 @@ class Collaborations_Assistant():
                 if all(tag in game_tag_id[0:7] for tag in input_tag):
                     # 미성년자의 경우 게임 필터링
                     if request.user.age < 20:
-                        if not any(tag in game_tag_id[0:7] for tag in self.restrict_id):
+                        if not any(tag in game_tag_id for tag in self.restrict_id):
                             search_game_id.append(game_id)
                             num += 1
                     else:
@@ -844,24 +845,6 @@ class Collaborations_Assistant():
                 # 비슷한 유저의 게임 중 원하는 게임이 다 쌓였을 경우 탈출
                 if num == 3:
                     break
-
-            # 사용자 입력의 태그를 모두 충족하는 게임이 없을 시 하나라도 충족하는 게임 추출
-            if num==0:
-                for game_id in random_similar_user_game:
-                    game_tag_id = self.get_game_tag(game_id)
-                    if any(tag in game_tag_id[0:7] for tag in input_tag):
-                        # 미성년자의 경우 게임 필터링
-                        if request.user.age < 20:
-                            if not any(tag in game_tag_id[0:7] for tag in self.restrict_id):
-                                search_game_id.append(game_id)
-                                num += 1
-                        else:
-                            search_game_id.append(game_id)
-                            num += 1
-                
-                    # 비슷한 유저의 게임 중 원하는 게임이 다 쌓였을 경우 탈출
-                    if num == 3:
-                        break
 
         # 사용자 게임에 이미 검색된 게임도 포함
         user_game.extend(search_game_id)
