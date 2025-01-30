@@ -283,7 +283,7 @@
 ## 5. 멤버 및 역할
 
 <p align="center">
-  <img src="assets/README/team.png" alt="팀 소개" width="80%">
+  <img src="assets/README/team.png" alt="팀 소개" width="100%">
 </p>
 
 ---
@@ -291,7 +291,7 @@
 ## 6. 회고
 
 <p align="center">
-  <img src="assets/README/remind.png" alt="회고" width="80%">
+  <img src="assets/README/remind.png" alt="회고" width="100%">
 </p>
 
 ### 📑 추가 문서 링크
