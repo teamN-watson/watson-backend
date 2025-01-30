@@ -275,7 +275,7 @@
 아래 다이어그램을 통해 테이블 간의 관계를 쉽게 이해할 수 있습니다.
 
 <p align="center">
-  <img src="assets/README/erd.png" alt="ERD Diagram" width="100%"
+  <img src="assets/README/ERD.png" alt="ERD Diagram" width="100%"
        style="border: 2px solid #ddd; border-radius: 10px; padding: 5px;">
 </p>
 
