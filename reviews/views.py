@@ -22,6 +22,7 @@ from urllib.parse import urlencode
 from reviews.youtube import SearchYoutube
 import requests
 from django.core.cache import cache
+import re
 
 class ReviewAPIView(APIView):
     """
@@ -434,7 +435,7 @@ class ReviewSearchAPIView(APIView):
         )
 
 def get_steam_data(game_id):
-    cache_key = f"steam_data_{game_id}"
+    cache_key = re.sub(r'[^a-zA-Z0-9_-]', '_', f"steam_data_{game_id}")
     steam_data = cache.get(cache_key)
     if not steam_data:
         params = {'appids': game_id, 'l': 'korean'}

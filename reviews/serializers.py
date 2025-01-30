@@ -7,6 +7,7 @@ class ReviewCommentSerializer(serializers.ModelSerializer):
     """ReviewComment 모델 직렬화"""
 
     nickname = serializers.SerializerMethodField()
+    user_photo = serializers.SerializerMethodField()  # 사용자 프로필 이미지
 
     class Meta:
         model = ReviewComment
@@ -15,6 +16,7 @@ class ReviewCommentSerializer(serializers.ModelSerializer):
             "review",
             "user",
             "nickname",
+            "user_photo",
             "content",
             "created_at",
             "updated_at",
@@ -24,6 +26,9 @@ class ReviewCommentSerializer(serializers.ModelSerializer):
     def get_nickname(self, obj):
         """유저 닉네임 반환 (유저가 없으면 '알수없음')"""
         return obj.user.nickname if obj.user else "알수없음"
+    def get_user_photo(self, obj):
+        """유저 프로필 이미지 (유저가 없으면 '알수없음')"""
+        return obj.user.photo.url if obj.user and obj.user.photo else "알수없음"
 
 
 class ReviewCommentLikeSerializer(serializers.ModelSerializer):
@@ -70,6 +75,7 @@ class ReviewSerializer(serializers.ModelSerializer):
     """Review 모델 직렬화"""
 
     nickname = serializers.SerializerMethodField()  # 사용자 닉네임 반환
+    user_photo = serializers.SerializerMethodField()  # 사용자 프로필 이미지
     content_display = serializers.SerializerMethodField()  # 차단된 사용자 콘텐츠 처리
     comments = ReviewCommentSerializer(many=True, read_only=True)  # 연결된 댓글들
     total_likes = serializers.IntegerField(read_only=True)  # annotate로 계산된 값
@@ -83,6 +89,7 @@ class ReviewSerializer(serializers.ModelSerializer):
             "id",
             "user",
             "nickname",
+            "user_photo",
             "content",
             "content_display",
             "app_id",
@@ -138,6 +145,9 @@ class ReviewSerializer(serializers.ModelSerializer):
     def get_nickname(self, obj):
         """유저 닉네임 반환 (유저가 없으면 '알수없음')"""
         return obj.user.nickname if obj.user else "알수없음"
+    def get_user_photo(self, obj):
+        """유저 프로필 이미지 (유저가 없으면 '알수없음')"""
+        return obj.user.photo.url if obj.user and obj.user.photo else "알수없음"
 
     def get_content_display(self, obj):
         blocked_users = self.context.get("blocked_users", [])

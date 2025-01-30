@@ -206,9 +206,10 @@ AUTH_USER_MODEL = "accounts.Account"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 SECURE_CONTENT_TYPE_NOSNIFF = False
+
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
-        'LOCATION': 'cache_location/',  # 캐시 저장 경로
+        "LOCATION": os.path.join(BASE_DIR, "cache"),  # 절대 경로 사용 / 캐시 저장 경로
     }
 }

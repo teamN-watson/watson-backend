@@ -58,7 +58,7 @@ class SearchYoutube:
 
     def search_videos(self, query: str, max_results: int = 30):
         # 캐시 키 생성
-        cache_key = f"youtube_videos_{query}"
+        cache_key = re.sub(r'[^a-zA-Z0-9_-]', '_', f"youtube_videos_{query}")
         cached_result = cache.get(cache_key)
         
         if cached_result:
