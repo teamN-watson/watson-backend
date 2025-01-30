@@ -163,7 +163,11 @@
          alt="Figma Service Flow" width="600px"
          style="border-radius: 15px; border: 2px solid #ddd; padding: 5px;">
   </a>
+  <br>
+  <sub>🔗 이미지를 클릭하면 Figma에서 서비스 플로우를 확인할 수 있습니다.</sub>
 </p>
+
+---
 
 ### 챗봇 플로우
 <p align="center">
@@ -172,7 +176,10 @@
          alt="Figma Chatbot Flow" width="600px"
          style="border-radius: 15px; border: 2px solid #ddd; padding: 5px;">
   </a>
+  <br>
+  <sub>🔗 이미지를 클릭하면 Figma에서 챗봇 플로우를 확인할 수 있습니다.</sub>
 </p>
+
 
 <h1>3. WATSON 기능</h1>
 
