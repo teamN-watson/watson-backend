@@ -110,47 +110,47 @@
 </p>
 
 <p align="center">
-  <table>
+  <table width="100%" style="border-collapse: collapse;">
     <tr style="background-color:#f2f2f2;">
-      <th style="text-align:center;"><b>카테고리</b></th>
-      <th style="text-align:center;"><b>기술 및 설명</b></th>
+      <th style="text-align:center; padding: 10px;"><b>카테고리</b></th>
+      <th style="text-align:center; padding: 10px;"><b>기술 및 설명</b></th>
     </tr>
     <tr>
-      <td align="center"><b>백엔드</b></td>
-      <td align="center">
-        Django REST Framework (DRF) 기반의 RESTful API 서버 구축 <br>
-        PostgreSQL을 사용한 관계형 데이터베이스 관리 <br>
-        JWT (JSON Web Token) 기반 인증 및 Steam OpenID 연동
+      <td align="center" style="padding: 10px;"><b>백엔드</b></td>
+      <td align="left" style="padding: 10px;">
+        - <b>Django REST Framework (DRF)</b> 기반의 RESTful API 서버 구축 <br>
+        - <b>PostgreSQL</b>을 사용한 관계형 데이터베이스 관리 <br>
+        - <b>JWT (JSON Web Token)</b> 기반 인증 및 <b>Steam OpenID</b> 연동
       </td>
     </tr>
     <tr>
-      <td align="center"><b>프론트엔드</b></td>
-      <td align="center">
-        React를 사용하여 사용자 인터페이스(UI) 개발 <br>
-        API 연동을 통한 데이터 처리 및 화면 렌더링 <br>
-        반응형 웹 디자인 적용
+      <td align="center" style="padding: 10px;"><b>프론트엔드</b></td>
+      <td align="left" style="padding: 10px;">
+        - <b>React</b>를 사용하여 사용자 인터페이스(UI) 개발 <br>
+        - <b>API 연동</b>을 통한 데이터 처리 및 화면 렌더링 <br>
+        - <b>반응형 웹 디자인</b> 적용
       </td>
     </tr>
     <tr>
-      <td align="center"><b>인프라 및 배포</b></td>
-      <td align="center">
-        AWS EC2 (t2 인스턴스): 애플리케이션 서버 호스팅 <br>
-        AWS S3: 사용자 업로드 파일 및 정적 리소스 저장 <br>
-        Docker 컨테이너를 활용한 배포 환경 구성
+      <td align="center" style="padding: 10px;"><b>인프라 및 배포</b></td>
+      <td align="left" style="padding: 10px;">
+        - <b>AWS EC2 (t2 인스턴스)</b>: 애플리케이션 서버 호스팅 <br>
+        - <b>AWS S3</b>: 사용자 업로드 파일 및 정적 리소스 저장 <br>
+        - <b>Docker</b> 컨테이너를 활용한 배포 환경 구성
       </td>
     </tr>
     <tr>
-      <td align="center"><b>AI 및 데이터 처리</b></td>
-      <td align="center">
-        OpenAI API를 활용한 AI 챗봇 기능 제공 <br>
-        BeautifulSoup을 활용한 Steam 리뷰 데이터 크롤링 및 분석
+      <td align="center" style="padding: 10px;"><b>AI 및 데이터 처리</b></td>
+      <td align="left" style="padding: 10px;">
+        - <b>OpenAI API</b>를 활용한 AI 챗봇 기능 제공 <br>
+        - <b>BeautifulSoup</b>을 활용한 Steam 리뷰 데이터 크롤링 및 분석
       </td>
     </tr>
     <tr>
-      <td align="center"><b>보안 및 인증</b></td>
-      <td align="center">
-        JWT 기반 사용자 인증을 통한 보안 강화 <br>
-        Steam OpenID 연동을 통한 간편 로그인 지원
+      <td align="center" style="padding: 10px;"><b>보안 및 인증</b></td>
+      <td align="left" style="padding: 10px;">
+        - <b>JWT 기반 사용자 인증</b>을 통한 보안 강화 <br>
+        - <b>Steam OpenID</b> 연동을 통한 간편 로그인 지원
       </td>
     </tr>
   </table>
