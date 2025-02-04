@@ -97,11 +97,12 @@
 
 ### 서비스 시연 영상
 <p align="center">
-  <a href="https://www.youtube.com/watch?v=영상_ID" target="_blank">
-    <img src="https://img.youtube.com/vi/영상_ID/0.jpg" alt="YouTube Video" width="600px" 
+  <a href="https://www.youtube.com/watch?v=uf30M1EIhEw" target="_blank">
+    <img src="https://img.youtube.com/vi/uf30M1EIhEw/0.jpg" alt="YouTube Video" width="600px" 
          style="border-radius: 15px; border: 2px solid #ddd; padding: 5px;">
   </a>
 </p>
+
 
 ### 서비스 아키텍처
 <p align="center">
