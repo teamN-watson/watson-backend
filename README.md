@@ -1,8 +1,8 @@
-  ![WATSON](https://github.com/user-attachments/assets/c85baf59-8219-484c-b632-a659028697d4)
+
 <p align="center">
   <img src="assets/README/logo.gif" width="100%">
 </p>
-
+  ![WATSON](https://github.com/user-attachments/assets/c85baf59-8219-484c-b632-a659028697d4)
 ## 📌 버전 업데이트 내역 (Release Notes)
 
 <h2> [v1.2.0] (25.01.30 ~ ) </h2>
