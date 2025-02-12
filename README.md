@@ -1,4 +1,3 @@
-[WATSON.pdf](https://github.com/user-attachments/files/18763786/WATSON.pdf)
 <p align="center">
   <img src="assets/README/logo.gif" width="100%">
 </p>
