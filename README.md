@@ -1,54 +1,11 @@
-
 <p align="center">
   <img src="assets/README/logo.gif" width="100%">
-</p>
+</p>  
 
-![WATSON](https://github.com/user-attachments/assets/c85baf59-8219-484c-b632-a659028697d4)
-  
-## 📌 버전 업데이트 내역 (Release Notes)
-
-<h2> [v1.2.0] (25.01.30 ~ ) </h2>
-<blockquote style="background:#f8f9fa; border-left:5px solid #1E3A5F; padding:15px;">
-  🐞 <b>버그 수정 및 개선 사항</b> <br>
-  - 챗봇 응답 속도 최적화 및 로딩 시간 단축 <br>
-  - 챗봇 응답이 잘리는 문제 해결 <br>
-  - 리뷰 수정 및 삭제 기능 추가
-</blockquote>
-
----
-
-<h2> [v1.1.0] (25.01.27 ~ 29) </h2>
-<blockquote style="background:#f8f9fa; border-left:5px solid #1E3A5F; padding:15px;">
-  ✅ <b>새로운 기능</b> <br>
-  - 사용자의 취향을 분석해 <b>자동 추천 시스템</b> 추가 <br>
-  - 특정 게임과 유사한 게임을 추천하는 기능 추가
-</blockquote>
-<blockquote style="background:#f8f9fa; border-left:5px solid #1E3A5F; padding:15px;">
-  🐞 <b>버그 수정 및 개선 사항</b> <br>
-  - 일부 화면 깨짐 수정 <br>
-  - 화면 로딩 속도 개선 <br>
-  - 게임 세부 정보 부족 문제 해결
-</blockquote>
-
----
-
-<h2> [v1.0.0] (25.01.24 ~ 26) </h2>
-<blockquote style="background:#f8f9fa; border-left:5px solid #1E3A5F; padding:15px;">
-  ✅ <b>새로운 기능</b> <br>
-  - 게임 검색 기능 개선 (검색 기준 완화) <br>
-  - 회원가입 시 게임 관심사 선택 기능 추가
-</blockquote>
-<blockquote style="background:#f8f9fa; border-left:5px solid #1E3A5F; padding:15px;">
-  🚀 <b>최초 테스트</b> <br>
-  - 게임 추천 및 검색 기능 제공 <br>
-  - 기본적인 챗봇 서비스 지원 <br>
-  - 사용자 리뷰 및 평점 시스템 도입
-</blockquote>
-
+![WATSON](https://github.com/user-attachments/assets/c85baf59-8219-484c-b632-a659028697d4)  
 
 <h1>1. 프로젝트 개요</h1>
 
----
 <h2> [아이디어 배경]</h2>
 <blockquote style="background:#f8f9fa; border-left:5px solid #1E3A5F; padding:15px;">
   현대의 방대한 게임 시장에서 사용자들은 자신에게 적합한 게임을 찾는 데 <b>어려움</b>을 겪고 있습니다. <br>
@@ -338,3 +295,46 @@
     </tr>
   </table>
 </p>
+
+
+## 📌 버전 업데이트 내역 (Release Notes)
+
+<h2> [v1.2.0] (25.01.30 ~ ) </h2>
+<blockquote style="background:#f8f9fa; border-left:5px solid #1E3A5F; padding:15px;">
+  🐞 <b>버그 수정 및 개선 사항</b> <br>
+  - 챗봇 응답 속도 최적화 및 로딩 시간 단축 <br>
+  - 챗봇 응답이 잘리는 문제 해결 <br>
+  - 리뷰 수정 및 삭제 기능 추가
+</blockquote>
+
+---
+
+<h2> [v1.1.0] (25.01.27 ~ 29) </h2>
+<blockquote style="background:#f8f9fa; border-left:5px solid #1E3A5F; padding:15px;">
+  ✅ <b>새로운 기능</b> <br>
+  - 사용자의 취향을 분석해 <b>자동 추천 시스템</b> 추가 <br>
+  - 특정 게임과 유사한 게임을 추천하는 기능 추가
+</blockquote>
+<blockquote style="background:#f8f9fa; border-left:5px solid #1E3A5F; padding:15px;">
+  🐞 <b>버그 수정 및 개선 사항</b> <br>
+  - 일부 화면 깨짐 수정 <br>
+  - 화면 로딩 속도 개선 <br>
+  - 게임 세부 정보 부족 문제 해결
+</blockquote>
+
+---
+
+<h2> [v1.0.0] (25.01.24 ~ 26) </h2>
+<blockquote style="background:#f8f9fa; border-left:5px solid #1E3A5F; padding:15px;">
+  ✅ <b>새로운 기능</b> <br>
+  - 게임 검색 기능 개선 (검색 기준 완화) <br>
+  - 회원가입 시 게임 관심사 선택 기능 추가
+</blockquote>
+<blockquote style="background:#f8f9fa; border-left:5px solid #1E3A5F; padding:15px;">
+  🚀 <b>최초 테스트</b> <br>
+  - 게임 추천 및 검색 기능 제공 <br>
+  - 기본적인 챗봇 서비스 지원 <br>
+  - 사용자 리뷰 및 평점 시스템 도입
+</blockquote>
+
+
