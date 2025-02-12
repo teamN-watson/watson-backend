@@ -1,3 +1,4 @@
+  ![WATSON](https://github.com/user-attachments/assets/c85baf59-8219-484c-b632-a659028697d4)
 <p align="center">
   <img src="assets/README/logo.gif" width="100%">
 </p>
